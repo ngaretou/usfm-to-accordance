@@ -1,0 +1,111 @@
+{
+  "name": "usfm-to-accordance",
+  "version": "0.1.0",
+  "description": "Convert USFM format Bible texts to Accordance User Bible format.",
+  "author": "Corey Garrett",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "test": "electron .",
+    "debug": "./node_modules/.bin/electron --inspect=5859 .",
+    "watch": "nodemon --exec 'electron .'",
+    "mac": "electron-builder -m",
+    "win": "electron-builder -w",
+    "lin": "electron-builder -l",
+    "build": "electron-builder -mwl",
+    "publish": "electron-builder build -mwl -p always",
+    "repovaradd": "git remote add origin https://github.com/ngaretou/usfm-to-accordance.git"
+  },
+  "repository": "https://github.com/ngaretou/usfm-to-accordance.git",
+  "build": {
+    "asar": "true",
+    "afterSign": "notarize.js",
+    "appId": "org.sim.usfm2acc",
+    "productName": "usfm-to-accordance",
+    "directories": {
+      "buildResources": "/build"
+    },
+    "mac": {
+      "publish": [
+        "github"
+      ],
+      "category": "public.app-category.reference",
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.inherit.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "background": "build/background.tiff",
+      "iconSize": 160,
+      "contents": [
+        {
+          "x": 100,
+          "y": 200
+        },
+        {
+          "x": 480,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "linux": {
+      "publish": [
+        "github"
+      ],
+      "category": "Education",
+      "packageCategory": "Education",
+      "maintainer": "La MBS <equipedevmbs@gmail.com>",
+      "target": [
+        "deb",
+        "AppImage"
+      ],
+      "synopsis": "Bible conversion app built using Electron framework."
+    },
+    "deb": {
+      "depends": [
+        "gconf2",
+        "gconf-service",
+        "libnotify4",
+        "libappindicator1",
+        "libxtst6",
+        "libnss3"
+      ]
+    },
+    "win": {
+      "publish": [
+        "github"
+      ],
+      "publisherName": [
+        "La MBS"
+      ],
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": false
+    }
+  },
+  "devDependencies": {
+    "electron": "^9.0.1",
+    "electron-builder": "^22.7.0",
+    "electron-notarize": "^0.2.1",
+    "nodemon": "^2.0.4",
+    "npm": "^6.14.5"
+  },
+  "dependencies": {
+    "electron-log": "^4.2.1",
+    "electron-updater": "^4.3.1",
+    "electron-window-state": "5.0.1"
+  }
+}
