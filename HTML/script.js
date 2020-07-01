@@ -77,17 +77,17 @@ function getAccelerators() {
     (event.ctrlKey && event.key === "o") ||
     (event.metaKey && event.key === "o")
   ) {
-    console.log("o heard");
+    openList();
   } else if (
     (event.ctrlKey && event.key === "s") ||
     (event.metaKey && event.key === "s")
   ) {
-    console.log("s heard");
+    saveList();
   } else if (
     (event.ctrlKey && event.key === "n") ||
     (event.metaKey && event.key === "n")
   ) {
-    console.log("n heard");
+    newList();
   }
   // else if (
   //     (event.ctrlKey && event.key === "-") ||
@@ -124,7 +124,6 @@ if (!remote.process.platform === "darwin") {
 // Functions
 
 function openList() {
-  console.log("openlist");
   let options = {
     //Placeholder 1
     title: "Save USFM book list",
@@ -141,7 +140,7 @@ function openList() {
       filePathToOpen = result.filePaths[0];
       let rawdata = fs.readFileSync(`${filePathToOpen}`, "utf-8");
       currentFileList = JSON.parse(rawdata);
-      console.log(currentFileList);
+
       //Now populate the list
       fileListBox.innerHTML = "";
 
@@ -177,8 +176,6 @@ function saveList(currentFileList, andClear) {
   };
 
   remote.dialog.showSaveDialog(WIN, options).then((path) => {
-    console.log(path.filePath);
-    console.log(currentFileList);
     localStorage.setItem("currentFileList", JSON.stringify(currentFileList));
     fs.writeFile(path.filePath, JSON.stringify(currentFileList), (err) => {
       if (err) throw err;
@@ -202,7 +199,7 @@ function newList() {
     .then((result) => {
       if (result.response === 0) {
         // bound to buttons array
-        console.log("Default button clicked.");
+
         let andClear = "true";
         saveList(currentFileList, andClear);
       } else if (result.response === 1) {
@@ -229,8 +226,6 @@ function addFiles(files) {
       path: file.path,
     };
     //filter for the right kind of files
-    console.log(tempObj.name);
-    console.log(tempObj.name.substr(-4));
 
     if (
       tempObj.name.substr(-4).toLowerCase() == ".sfm" ||
@@ -264,11 +259,9 @@ function addFiles(files) {
     }
     if (nameA === nameB) {
       alert("Error: two identical file names entered.");
-
-      console.log(currentFileList);
     }
   });
-  console.log(currentFileList);
+
   //Now populate the list
   fileListBox.innerHTML = "";
 
@@ -278,6 +271,7 @@ function addFiles(files) {
     entryToAdd.innerHTML = file.name;
     fileListBox.appendChild(entryToAdd);
   }
+  convertButton.style.display = "flex";
 }
 
 //ipc messages
@@ -311,11 +305,9 @@ let dragDropArea = document;
 let documentListBox = document.getElementsByClassName("select-css");
 
 document.addEventListener("drop", (event) => {
-  console.log("drop");
   event.preventDefault();
   event.stopPropagation();
   fileList = event.dataTransfer.files;
-  console.log("fileList in drop event" + fileList);
 
   addFiles(fileList);
 
@@ -327,26 +319,24 @@ dragDropArea.addEventListener("dragover", (e) => {
   document.body.style.backgroundColor = "#686464";
   documentListBox[0].style.backgroundColor = "#413e3e";
 
-  console.log("dragover");
-
   e.preventDefault();
   e.stopPropagation();
 });
 
-// dragDropArea.addEventListener("dragout", (e) => {
-//   console.log("dragout");
-//   document.body.style.backgroundColor = "#686464";
-//   e.preventDefault();
-//   e.stopPropagation();
-// });
-
-// dragDropArea.addEventListener("dragenter", (event) => {
-//   console.log("File is in the Drop Space");
-//   // document.body.style.backgroundColor = "#686464";
-// });
-
 dragDropArea.addEventListener("dragleave", (event) => {
-  console.log("File has left the Drop Space");
   document.body.style.backgroundColor = "#1f1e1eea";
   documentListBox[0].style.backgroundColor = "#1f1e1eea";
+});
+
+//Delete an entry from listbox and from the currentFileList array
+fileListBox.addEventListener("keydown", (event) => {
+  if (event.key === "Backspace" || event.key === "Delete") {
+    var newFileList = currentFileList.filter(function (file) {
+      return file.path !== fileListBox.value;
+    });
+
+    currentFileList = newFileList;
+  }
+
+  fileListBox.remove(fileListBox.selectedIndex);
 });
