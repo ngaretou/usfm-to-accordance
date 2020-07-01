@@ -19,11 +19,12 @@ hr.new1 {
   border-color: #818181;
 }
 
-.material-icons {
+.material-icons,
+.material-icons-buttons {
   font-family: "Material Icons";
   font-weight: normal;
   font-style: normal;
-  font-size: 90px; /* Preferred icon size */
+  font-size: 75px; /* Preferred icon size */
   display: inline-block;
   line-height: 1;
   text-transform: none;
@@ -44,11 +45,16 @@ hr.new1 {
   font-feature-settings: "liga";
 }
 
+.material-icons-buttons {
+  font-size: 30px;
+}
+
 body {
   font-family: "Verdana", sans-serif;
   margin: 0px;
   overflow: hidden; /* Hide scrollbars */
-  background-color: #363535e3;
+  background-color: #1f1e1eea;
+  user-select: none;
 }
 /* .icon-text-arabic {
   font-family: "Harmattan";
@@ -72,23 +78,25 @@ body {
   font-size: 26px;
 }
 
+/* Main window setup */
 .rowcontainer {
   display: flex;
   padding: 0px;
-  margin: 10px;
+  margin: 0px;
   overflow: hidden;
   color: darkgray;
   flex-wrap: wrap;
+  height: calc(100% - 10px);
 }
 
 .item,
 .item-right {
-  height: calc(100vh - 120px);
+  height: calc(100vh - 60px);
   align-items: auto;
   width: 300px;
-  margin: 10px;
-  padding: 10px;
-  background-color: 363535e3;
+  margin: 0px;
+  padding: 15px;
+  /* background-color: 363535e3; */
 }
 
 .item-right {
@@ -97,7 +105,9 @@ body {
 
 .item:nth-child(3n) {
   width: 100%;
-  height: 20px;
+  height: 16px;
+  margin-top: 0px;
+  padding: 0px;
 }
 
 .item + .item {
@@ -111,21 +121,29 @@ body {
 
 .columnist {
   min-height: 100%;
-
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .column-item,
-.column-item-stretch {
+.column-item-stretch,
+.column-item-toolbar {
   display: flex;
   justify-content: center;
   flex-direction: column;
   background-color: 363535e3;
-  width: auto;
-  margin: auto;
+  width: 100%;
+  margin: 5;
   flex: 1;
+}
+
+.column-item-toolbar {
+  height: 20px;
+  padding: 5px;
+  flex: 0;
+  flex-direction: row;
 }
 
 .footer {
@@ -134,6 +152,14 @@ body {
   text-align: center;
 }
 
+.footer a {
+  color: darkgray;
+
+  text-decoration: underline;
+  text-decoration-style: dashed;
+}
+
+/* Listbox */
 .select-css {
   display: flex;
   flex-direction: row;
@@ -153,7 +179,8 @@ body {
   -moz-appearance: none;
   -webkit-appearance: none;
   appearance: none;
-  background-color: #363535e3;
+  background-color: #28292a;
+  user-select: none;
 }
 .select-css::-ms-expand {
   display: none;
@@ -166,8 +193,43 @@ body {
   box-shadow: 0 0 1px 3px rgba(34, 38, 43, 0.7);
   box-shadow: 0 0 0 3px -moz-mac-focusring;
   color: darkgray;
+
   outline: none;
+}
+.select-css::selection {
+  background-color: #053d7c !important;
+  color: #d8d7d4 !important;
 }
 .select-css option {
   font-weight: normal;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  z-index: 1;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+button {
+  background: #818181;
+  color: black;
+  border-radius: 5px;
+  border: none;
+  font-size: 20px;
+  outline: none;
+  margin-left: 10px;
 }

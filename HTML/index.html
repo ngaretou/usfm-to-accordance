@@ -10,34 +10,44 @@
     <title>usfm-to-accordance</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body>
+  <body id="bodylabel">
     <div class="rowcontainer">
       <div class="item">
         <div class="columnist">
-          <div class="column-item"></div>
           <div class="column-item">
             <div class="material-icons">system_update_alt</div><br>
             <div class="instructions">Drag and drop USFM files to the window to start converting to Accordance format</div></div>
           <div class="column-item">
-            </div>
-        </div> </div>
+            
+          
+            <!-- <div class="instructions">Convert the USFM files to Accordance</div><br> -->
+            <button id="convertButton"  title="Open saved list" style="width:auto;margin-left:auto;margin-right:auto;padding:15px;display:none">Convert</button>
+          </div>
+       
+            <div class="column-item-toolbar">
+             
+            </div>   </div> 
+       
+      </div>
 
       <div class="item-right">
         <div class="columnist"> 
           <div class="column-item">
 
-            <select class="select-css" name="cars" size="20" multiple>
-              <option value="volvo">/Users/corey/OneDrive - SIM International, Inc/Documents/SIM/Wolofal/Paratext 8 projects/wolKYG/02EXOwolKYG.SFM</option>
-              <option value="saab">Saab</option>
-              <option value="fiat">Fiat</option>
-              <option value="audi">Audi</option>
+            <select id="documentListBox" class="select-css" name="cars" size="20" multiple>
+              
             </select>
+            <div class="column-item-toolbar">
+              <button id="openButton" class="material-icons-buttons" title="Open saved list">vertical_align_top</button>
+              <button id="saveButton" class="material-icons-buttons" title="Save current list">save</button>
+              <button id="newListButton" class="material-icons-buttons" title="New list">add_circle_outline</button>
+            </div>
 
           </div>
          
         </div></div>
       <div class="item">
-        <div class="footer">here is the footer text - here is the footer text - here is the footer text</div>
+        <div class="footer"> <a href="#">about</a>    |    <a href="#">support</a>    |    <a href="#">source code</a>    |    <a href="#">Accordance</a> </div>
       </div></div>
     </div>
     <script src="./script.js"></script>

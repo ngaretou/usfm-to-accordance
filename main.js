@@ -81,8 +81,8 @@ app.on("ready", () => {
 ipcMain.on("set-display-lang", (e, displayLang) => {
   createMenus(displayLang);
   // Check for update after x seconds
-  const updater = require("./updater");
-  setTimeout(updater.check, 5000, displayLang);
+  // const updater = require("./updater");
+  // setTimeout(updater.check, 5000, displayLang);
 });
 
 function createMenus(displayLang) {
@@ -222,6 +222,15 @@ ipcMain.on("lang-changed-reload-pages", (e) => {
   global.sharedObj = { loadingMain: true };
   mainWindow.webContents.reload();
   mainWindow.show();
+});
+
+//Handle drag and drop
+ipcMain.on("ondragstart", (event, filePath) => {
+  console.log("draganddrop in main.js");
+  event.sender.startDrag({
+    file: filePath,
+    icon: "/path/to/icon.png",
+  });
 });
 
 app.on("window-all-closed", function () {

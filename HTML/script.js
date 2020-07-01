@@ -1,5 +1,10 @@
 // Renderer javascript for index.html
-const { remote, shell, ipcRenderer, webFrame } = require("electron");
+const { remote, shell, ipcRenderer } = require("electron");
+const { dialog } = require("electron").remote;
+const fs = require("fs");
+
+const desktopPath = remote.app.getPath("desktop"),
+  WIN = remote.getCurrentWindow();
 
 //Our app's version for comparison below
 thisAppVersion = remote.app.getVersion();
@@ -9,14 +14,26 @@ const myData = require("../mydata");
 
 let displayLang = myData.otherText.defaultLang;
 
+let openButton = document.getElementById("openButton"),
+  saveButton = document.getElementById("saveButton"),
+  newListButton = document.getElementById("newListButton"),
+  convertButton = document.getElementById("convertButton"),
+  fileListBox = document.getElementById("documentListBox"),
+  currentFileList = [];
+
+const appFeedbackemail = myData.otherText.giveFeedbackemail;
+const appMenuWebURL = myData.otherText.menuWebURL;
+
 //Check the if the app has been previously run and if version is same as last run.
 //If lastOpenedVersion is null, then it's a new open.
 if (localStorage.getItem("lastOpenedVersion") === null) {
   //set things up for first run: set a variable in local storage equal to current app version and continue.
-  //You don't need to set up lastKnownStateMainWin now, the app will do that as you change panes
-  localStorage.setItem("lastOpenedVersion", JSON.stringify(thisAppVersion));
-  //This is in case of a first run, this populates the session memory with the array for the folders and pages.
 
+  localStorage.setItem("lastOpenedVersion", JSON.stringify(thisAppVersion));
+
+  //This gets us our default interface lang from myData.
+  displayLang = myData.otherText.defaultLang;
+  localStorage.setItem("lastKnownDisplayLanguage", JSON.stringify(displayLang));
   //Let the main process know the displayLang
   ipcRenderer.send("set-display-lang", displayLang);
 }
@@ -25,7 +42,7 @@ if (localStorage.getItem("lastOpenedVersion") === null) {
 else if (
   JSON.parse(localStorage.getItem("lastOpenedVersion")) === thisAppVersion
 ) {
-  //displayLang = JSON.parse(localStorage.getItem("lastKnownDisplayLanguage"));
+  displayLang = JSON.parse(localStorage.getItem("lastKnownDisplayLanguage"));
   //Let the main process know the displayLang
   ipcRenderer.send("set-display-lang", displayLang);
 }
@@ -37,17 +54,15 @@ else if (
   localStorage.setItem("lastOpenedVersion", JSON.stringify(thisAppVersion));
 
   //Let the main process know the displayLang
-  // displayLang = JSON.parse(localStorage.getItem("lastKnownDisplayLanguage"));
+  displayLang = JSON.parse(localStorage.getItem("lastKnownDisplayLanguage"));
   ipcRenderer.send("set-display-lang", displayLang);
 }
 
+const appMenuWebsite = myData.myTranslations.menuWebsite[displayLang];
+
 //Housekeeping:
 //Give the app builder a message if they have put feedback message but no email or subject
-if (!(appFeedback === "") && appFeedbackemail === "") {
-  alert(
-    `Menu item for app feedback is enabled but no email address is entered. Check out otherText section of mydata.js.`
-  );
-}
+
 //Give app builder a msg if they have a 'visit our website' message but not website set
 if (!(appMenuWebsite === "") && appMenuWebURL === "") {
   alert(
@@ -55,73 +70,217 @@ if (!(appMenuWebsite === "") && appMenuWebURL === "") {
   );
 }
 
-//** Event listeners/handlers
-
 //the menu and its associated accelerators only work on Mac, so we have to manually add accelerators for non-Mac platforms
 
 function getAccelerators() {
   if (
-    (event.ctrlKey && event.key === "c") ||
-    (event.metaKey && event.key === "c")
+    (event.ctrlKey && event.key === "o") ||
+    (event.metaKey && event.key === "o")
   ) {
-    console.log("c heard");
-    document
-      .getElementById("mainFrame")
-      .contentWindow.document.execCommand("copy");
+    console.log("o heard");
   } else if (
-    (event.ctrlKey && event.key === "a") ||
-    (event.metaKey && event.key === "a")
+    (event.ctrlKey && event.key === "s") ||
+    (event.metaKey && event.key === "s")
   ) {
-    console.log("a heard");
-    document
-      .getElementById("mainFrame")
-      .contentWindow.document.execCommand("selectAll");
+    console.log("s heard");
   } else if (
-    (event.ctrlKey && event.key === "+") ||
-    (event.metaKey && event.key === "+") ||
-    (event.ctrlKey && event.shiftKey && event.key === "=") ||
-    (event.metaKey && event.shiftKey && event.key === "=")
+    (event.ctrlKey && event.key === "n") ||
+    (event.metaKey && event.key === "n")
   ) {
-    console.log("+ heard");
-    webFrame.setZoomFactor(webFrame.getZoomFactor() + 0.1);
-  } else if (
-    (event.ctrlKey && event.key === "-") ||
-    (event.metaKey && event.key === "-")
-  ) {
-    console.log("- heard");
-    webFrame.setZoomFactor(webFrame.getZoomFactor() - 0.1);
-  } else if (
-    (event.ctrlKey && event.key === "0") ||
-    (event.metaKey && event.key === "0")
-  ) {
-    console.log("- heard");
-    webFrame.setZoomFactor(1);
+    console.log("n heard");
   }
+  // else if (
+  //     (event.ctrlKey && event.key === "-") ||
+  //     (event.metaKey && event.key === "-")
+  //   ) {
+  //     console.log("- heard");
+  //     webFrame.setZoomFactor(webFrame.getZoomFactor() - 0.1);
+  //   } else if (
+  //     (event.ctrlKey && event.key === "0") ||
+  //     (event.metaKey && event.key === "0")
+  //   ) {
+  //     console.log("- heard");
+  //     webFrame.setZoomFactor(1);
+  //   }
 }
-//Safety with nodeintegration:
-//Our index.html has no outside links so they can be normally handled. But often an HTML collection will have
-//an outside link, perhaps for a copyright page or other information. Here we want to parse for relative hyperlinks
-//and let those go, but open all others in the user's default browser.
-//Wrapping the onclick event in the onload event is important because you have to reload this code each time the iframe reloads
-//as the onclick event is really applied to the iframe's contents. When the contents chagnes (onload) you have to reapply the handler.
-document.getElementById("mainFrame").onload = () => {
-  document.getElementById("mainFrame").contentWindow.document.onclick = () => {
-    if (event.target.tagName === "A" && event.target.href.startsWith("http")) {
-      event.preventDefault();
-      shell.openExternal(event.target.href);
-    }
-  };
-};
 
-//See right above in the mainFrame onload - this loads the accelerators for the rest of the window when not on Mac
+//Safety with nodeintegration:
+//Here we want to parse for relative hyperlinks
+//and let those go, but open all others in the user's default browser.
+document.addEventListener("click", (e) => {
+  if (event.target.tagName === "A" && event.target.href.startsWith("http")) {
+    event.preventDefault();
+    shell.openExternal(event.target.href);
+  }
+});
+
+// this loads the accelerators for the rest of the window when not on Mac
 if (!remote.process.platform === "darwin") {
   document.onkeydown = () => {
     getAccelerators();
   };
 }
 
-//** Functions
+// Functions
 
+function openList() {
+  console.log("openlist");
+  let options = {
+    //Placeholder 1
+    title: "Save USFM book list",
+    defaultPath: desktopPath,
+    filters: [
+      { name: "JSON files", extensions: ["json"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
+    properties: ["openFile"],
+  };
+  dialog
+    .showOpenDialog(WIN, options)
+    .then((result) => {
+      filePathToOpen = result.filePaths[0];
+      let rawdata = fs.readFileSync(`${filePathToOpen}`, "utf-8");
+      currentFileList = JSON.parse(rawdata);
+      console.log(currentFileList);
+      //Now populate the list
+      fileListBox.innerHTML = "";
+
+      for (let file of currentFileList) {
+        let entryToAdd = document.createElement("option");
+        entryToAdd.setAttribute("value", file.path);
+        entryToAdd.innerHTML = file.name;
+        fileListBox.appendChild(entryToAdd);
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+
+  //
+}
+function saveList(currentFileList, andClear) {
+  let options = {
+    //Placeholder 1
+    title: "Save USFM book list",
+
+    //Placeholder 2
+    defaultPath: desktopPath,
+
+    //Placeholder 4
+    buttonLabel: "Save",
+
+    //Placeholder 3
+    filters: [
+      { name: "JSON files", extensions: ["json"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
+  };
+
+  remote.dialog.showSaveDialog(WIN, options).then((path) => {
+    console.log(path.filePath);
+    console.log(currentFileList);
+    localStorage.setItem("currentFileList", JSON.stringify(currentFileList));
+    fs.writeFile(path.filePath, JSON.stringify(currentFileList), (err) => {
+      if (err) throw err;
+
+      //This is if the "andClear" setting is true, coming from the newList button command.
+      if (andClear === "true") {
+        fileListBox.innerHTML = "";
+      }
+    });
+  });
+}
+
+function newList() {
+  dialog
+    .showMessageBox({
+      type: "info",
+      title: "Save?",
+      message: "Do you want to save the existing list?",
+      buttons: ["Yes", "No"],
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        // bound to buttons array
+        console.log("Default button clicked.");
+        let andClear = "true";
+        saveList(currentFileList, andClear);
+      } else if (result.response === 1) {
+        // bound to buttons array
+        fileListBox.innerHTML = "";
+      }
+    });
+}
+
+function convert() {
+  console.log("convert");
+}
+
+function addFiles(files) {
+  //Add/append the new files to they array one at a time
+  //In addFiles
+
+  //So a bit of a strange thing here...the array that drag and drop give you has named objects: the rows as it were
+  //have a name "File:" instead of being simply numbered. So grab the info you need into a simple array here rather than using the array as-is.
+
+  for (let file of files) {
+    var tempObj = {
+      name: file.name,
+      path: file.path,
+    };
+    //filter for the right kind of files
+    console.log(tempObj.name);
+    console.log(tempObj.name.substr(-4));
+
+    if (
+      tempObj.name.substr(-4).toLowerCase() == ".sfm" ||
+      tempObj.name.substr(-5).toLowerCase() == ".usfm"
+    ) {
+      currentFileList.push(tempObj);
+    }
+  }
+
+  //This filters the array so you can't accidentally put in duplicates
+  const filteredArr = currentFileList.reduce((acc, current) => {
+    const x = acc.find((item) => item.name === current.name);
+    if (!x) {
+      return acc.concat([current]);
+    } else {
+      return acc;
+    }
+  }, []);
+
+  currentFileList = filteredArr;
+
+  // sort by name
+  currentFileList.sort(function (a, b) {
+    var nameA = a.name.toUpperCase(); // ignore upper and lowercase
+    var nameB = b.name.toUpperCase(); // ignore upper and lowercase
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
+    }
+    if (nameA === nameB) {
+      alert("Error: two identical file names entered.");
+
+      console.log(currentFileList);
+    }
+  });
+  console.log(currentFileList);
+  //Now populate the list
+  fileListBox.innerHTML = "";
+
+  for (let file of currentFileList) {
+    let entryToAdd = document.createElement("option");
+    entryToAdd.setAttribute("value", file.path);
+    entryToAdd.innerHTML = file.name;
+    fileListBox.appendChild(entryToAdd);
+  }
+}
+
+//ipc messages
 ipcRenderer.on("language-switch", (e, lang) => {
   //Call this function from above to save the page
   saveDataMainWindow();
@@ -129,4 +288,65 @@ ipcRenderer.on("language-switch", (e, lang) => {
   localStorage.setItem("lastKnownDisplayLanguage", JSON.stringify(lang));
   //Now send a message back to main.js to reload the page
   ipcRenderer.send("lang-changed-reload-pages");
+});
+
+//Event listeners for buttons
+openButton.addEventListener("click", (e) => {
+  openList();
+});
+saveButton.addEventListener("click", (e) => {
+  saveList(currentFileList);
+});
+newListButton.addEventListener("click", (e) => {
+  newList();
+});
+convertButton.addEventListener("click", (e) => {
+  convert();
+});
+
+//Drag and drop files in
+// let dragDropArea = document.getElementById("dragdroparea");
+
+let dragDropArea = document;
+let documentListBox = document.getElementsByClassName("select-css");
+
+document.addEventListener("drop", (event) => {
+  console.log("drop");
+  event.preventDefault();
+  event.stopPropagation();
+  fileList = event.dataTransfer.files;
+  console.log("fileList in drop event" + fileList);
+
+  addFiles(fileList);
+
+  document.body.style.backgroundColor = "#1f1e1eea";
+  documentListBox[0].style.backgroundColor = "#1f1e1eea";
+});
+
+dragDropArea.addEventListener("dragover", (e) => {
+  document.body.style.backgroundColor = "#686464";
+  documentListBox[0].style.backgroundColor = "#413e3e";
+
+  console.log("dragover");
+
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+// dragDropArea.addEventListener("dragout", (e) => {
+//   console.log("dragout");
+//   document.body.style.backgroundColor = "#686464";
+//   e.preventDefault();
+//   e.stopPropagation();
+// });
+
+// dragDropArea.addEventListener("dragenter", (event) => {
+//   console.log("File is in the Drop Space");
+//   // document.body.style.backgroundColor = "#686464";
+// });
+
+dragDropArea.addEventListener("dragleave", (event) => {
+  console.log("File has left the Drop Space");
+  document.body.style.backgroundColor = "#1f1e1eea";
+  documentListBox[0].style.backgroundColor = "#1f1e1eea";
 });
