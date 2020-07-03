@@ -8,6 +8,7 @@ let MyAppVersion = app.getVersion();
 let accArray = [];
 let notesArray = [];
 let trimmedstring;
+let currentFileList;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -232,7 +233,7 @@ ipcMain.on("lang-changed-reload-pages", (e) => {
 //Testing mode
 var testing;
 //Comment out to disable automatic testing of the test file
-testing = true;
+//testing = true;
 if (testing === true) {
   let rawdata = fs.readFileSync(
     "/Users/corey/Desktop/testingfile.json",
@@ -243,6 +244,9 @@ if (testing === true) {
 }
 //End testing mode
 
+function sendmessage() {
+  mainWindow.send("incoming-index");
+}
 function cutoutmiddle(str, wheretostartcut, wheretoendcut) {
   wheretostartcutindex = str.indexOf(wheretostartcut);
   wheretoendcutindex = str.indexOf(wheretoendcut) + wheretoendcut.length;
@@ -262,14 +266,14 @@ function cutoutatstartandend(str, whattocutatstart, whattocutatend) {
 
 //Conversion
 function conversion(files) {
-  for (let file of currentFileList) {
+  for (let file of files) {
     //file by file, get the contents into a workable string
     var fileContents = fs.readFileSync(file.path, "utf8");
 
     // Get a string containing book abbreviation
     bookNameAbbreviation = fileContents.match(/(?<=\\id\s)\w*/);
     bookNameAbbreviationString = bookNameAbbreviation[0].toString();
-    console.log("bookNameAbbreviationString " + bookNameAbbreviationString);
+    //console.log("bookNameAbbreviationString " + bookNameAbbreviationString);
 
     //Now do general changes.
     //Remove °
@@ -287,7 +291,7 @@ function conversion(files) {
       `<b>$2</b> <b>$4</b>`
     );
 
-    console.log(fileContents);
+    // console.log(fileContents);
 
     var fileContents = fileContents.replace(/\\fk\s/g, "<b>");
     var fileContents = fileContents.replace(/\\fq\s/g, "<b>");
@@ -312,7 +316,7 @@ function conversion(files) {
     //split chapter into verses
     for (let chapter of chapters) {
       chapNum = chapter.match(/\d+/);
-      console.log("chapter " + chapNum[0]);
+      // console.log("chapter " + chapNum[0]);
 
       var verses = chapter.split(/\\v\s/);
       if (verses.length < 2) {
@@ -338,7 +342,7 @@ function conversion(files) {
             type: "title",
             lineText: `<b>${title}</b>`,
           };
-          console.log("titles " + entry.lineText);
+          // console.log("titles " + entry.lineText);
 
           //Store those titles in the notes array
           notesArray.push(entry);
@@ -381,7 +385,7 @@ function conversion(files) {
             if (hasFootnotes === true) {
               //Grab the footnotes in an array
               var footnotes = verseContents.match(/\\f.*?\\f\u002a.*?/g);
-              console.log(footnotes.length + " = number of footnotes");
+              // console.log(footnotes.length + " = number of footnotes");
 
               for (let footnote of footnotes) {
                 cutoutatstartandend(footnote, `\\f + `, `\\f*`);
@@ -392,8 +396,8 @@ function conversion(files) {
                   type: "footnote",
                   lineText: footnote,
                 };
-                console.log("footnotes below: ");
-                console.log(entry);
+                // console.log("footnotes below: ");
+                // console.log(entry);
 
                 notesArray.push(entry);
                 cutoutmiddle(verseContents, `\\f \+`, `\\f\*`);
@@ -416,6 +420,10 @@ function conversion(files) {
       }
     }
   }
+  // sendmessage();
+  mainWindow.send("indexing-done", accArray, notesArray);
+
+  console.log("last bracket");
 }
 
 // var oneChapterByVerse = fileContentsBody.split(splitString);

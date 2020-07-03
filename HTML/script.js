@@ -140,12 +140,13 @@ function openList() {
       filePathToOpen = result.filePaths[0];
       let rawdata = fs.readFileSync(`${filePathToOpen}`, "utf-8");
       currentFileList = JSON.parse(rawdata);
-
+      console.log(currentFileList);
       //Now populate the list
       fileListBox.innerHTML = "";
 
       for (let file of currentFileList) {
         let entryToAdd = document.createElement("option");
+        entryToAdd.setAttribute("class", "file-list-item");
         entryToAdd.setAttribute("value", file.path);
         entryToAdd.innerHTML = file.name;
         fileListBox.appendChild(entryToAdd);
@@ -155,8 +156,9 @@ function openList() {
       console.log(err);
     });
 
-  //
+  convertButton.style.display = "flex";
 }
+
 function saveList(currentFileList, andClear) {
   let options = {
     //Placeholder 1
@@ -213,6 +215,8 @@ function convert() {
   console.log("convert");
   //userfeedback
   convertButton.innerHTML = `<img src="loading2.gif">`;
+  console.log(Array.from(document.getElementsByClassName("file-list-item")));
+  console.log(currentFileList.length);
   if (
     Array.from(document.getElementsByClassName("file-list-item")).length ===
     currentFileList.length
@@ -351,4 +355,11 @@ fileListBox.addEventListener("keydown", (event) => {
   }
 
   fileListBox.remove(fileListBox.selectedIndex);
+});
+
+ipcRenderer.on("indexing-done", (e, accArray, notesArray) => {
+  localStorage.setItem("accArray", JSON.stringify(accArray));
+  localStorage.setItem("notesArray", JSON.stringify(notesArray));
+  convertButton.innerHTML = "Convert";
+  alert("done");
 });
