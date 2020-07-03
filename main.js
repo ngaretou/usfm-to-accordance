@@ -1,9 +1,13 @@
 const { app, BrowserWindow, Menu, ipcMain, ipcRenderer } = require("electron");
+const fs = require("fs");
 const myData = require("./mydata");
 const appText = myData.otherText;
 const transl = myData.myTranslations;
 //Set up some info about the app
 let MyAppVersion = app.getVersion();
+let accArray = [];
+let notesArray = [];
+let trimmedstring;
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -217,6 +221,7 @@ function createMenus(displayLang) {
 //When a language change is triggered via a click() calling createMenus() wiht the new language, it sends a message to
 //the renderer telling it to change localStorage to teh desired lanugage for future loads. It then bounces a message
 //back here to tell main process to reload the pages.
+
 ipcMain.on("lang-changed-reload-pages", (e) => {
   mainWindow.hide();
   global.sharedObj = { loadingMain: true };
@@ -224,13 +229,235 @@ ipcMain.on("lang-changed-reload-pages", (e) => {
   mainWindow.show();
 });
 
-//Handle drag and drop
-ipcMain.on("ondragstart", (event, filePath) => {
-  console.log("draganddrop in main.js");
-  event.sender.startDrag({
-    file: filePath,
-    icon: "/path/to/icon.png",
-  });
+//Testing mode
+var testing;
+//Comment out to disable automatic testing of the test file
+testing = true;
+if (testing === true) {
+  let rawdata = fs.readFileSync(
+    "/Users/corey/Desktop/testingfile.json",
+    "utf-8"
+  );
+  currentFileList = JSON.parse(rawdata);
+  conversion(currentFileList);
+}
+//End testing mode
+
+function cutoutmiddle(str, wheretostartcut, wheretoendcut) {
+  wheretostartcutindex = str.indexOf(wheretostartcut);
+  wheretoendcutindex = str.indexOf(wheretoendcut) + wheretoendcut.length;
+  firstpart = str.substring(0, wheretostartcutindex);
+  secondpart = str.substring(wheretoendcutindex);
+  trimmedstring = firstpart + secondpart;
+  return trimmedstring;
+}
+
+function cutoutatstartandend(str, whattocutatstart, whattocutatend) {
+  whattocutatstartindex = whattocutatstart.length;
+  trimmedstring = str.substring(whattocutatstartindex);
+  whattocutatendindex = trimmedstring.indexOf(whattocutatend);
+  trimmedstring = trimmedstring.substring(0, whattocutatendindex);
+  return trimmedstring;
+}
+
+//Conversion
+function conversion(files) {
+  for (let file of currentFileList) {
+    //file by file, get the contents into a workable string
+    var fileContents = fs.readFileSync(file.path, "utf8");
+
+    // Get a string containing book abbreviation
+    bookNameAbbreviation = fileContents.match(/(?<=\\id\s)\w*/);
+    bookNameAbbreviationString = bookNameAbbreviation[0].toString();
+    console.log("bookNameAbbreviationString " + bookNameAbbreviationString);
+
+    //Now do general changes.
+    //Remove °
+    var fileContents = fileContents.replace(/\°/g, "");
+
+    //Replace \\p & \q1,\q2 etc with ¶
+    var fileContents = fileContents.replace(/\\p\s/g, "¶");
+    var fileContents = fileContents.replace(/\\q.*?\s/g, "¶");
+    var fileContents = fileContents.replace(/\\ip.*?\s/g, "¶");
+    var fileContents = fileContents.replace(/\\ie/g, "¶");
+
+    //Replace \fk, fq, fr...\ft with <b>...</b>
+    var fileContents = fileContents.replace(
+      /(\\fr\s)(\d+[.:]\d+)(\s\\fk\s)(.*?)(\s\\ft)/g,
+      `<b>$2</b> <b>$4</b>`
+    );
+
+    console.log(fileContents);
+
+    var fileContents = fileContents.replace(/\\fk\s/g, "<b>");
+    var fileContents = fileContents.replace(/\\fq\s/g, "<b>");
+    var fileContents = fileContents.replace(/\\fr\s/g, "<b>");
+    var fileContents = fileContents.replace(/(?<!\s)\\ft/g, "</b>"); //instances where there is no space before the \ft
+    var fileContents = fileContents.replace(/\s\\ft/g, "</b>");
+
+    //italics
+    var fileContents = fileContents.replace(/\\bk\s/g, "<i>");
+    var fileContents = fileContents.replace(/\\bk\\*/g, "</i>");
+
+    //intro outline lists
+    var fileContents = fileContents.replace(/\\ili\s/g, "¶•  ");
+
+    //Take out glossary terms (for now)
+    var fileContents = fileContents.replace(/\|.*?:\\w\*/g, "");
+    var fileContents = fileContents.replace(/\\w\s/g, "");
+
+    //split the file contents into chapters
+    var chapters = fileContents.split(/\\c\s/);
+
+    //split chapter into verses
+    for (let chapter of chapters) {
+      chapNum = chapter.match(/\d+/);
+      console.log("chapter " + chapNum[0]);
+
+      var verses = chapter.split(/\\v\s/);
+      if (verses.length < 2) {
+        //special case for intros; any section that does not have verses
+        chapterWithNoVerses = verses.toString();
+
+        //Peel off the \id, \h, and TOCs to get to \mt1
+        var startAt = `\\mt1`;
+        var startingChar = chapterWithNoVerses.indexOf(startAt);
+        chapterWithNoVersesFromMT1 = chapterWithNoVerses.substring(
+          startingChar
+        );
+
+        //This gets your main titles mt mt1 mt2, also imt is intro section headings
+        var titles = chapterWithNoVersesFromMT1.match(
+          /(?<=\\\w?[sm].?\d?\s).+.+/g
+        );
+
+        //Now for each of our title lines, mt1, mt2, imt etc
+        for (let title of titles) {
+          var entry = {
+            bookAbbreviation: bookNameAbbreviationString,
+            type: "title",
+            lineText: `<b>${title}</b>`,
+          };
+          console.log("titles " + entry.lineText);
+
+          //Store those titles in the notes array
+          notesArray.push(entry);
+        }
+        //If there's only one title, we've entered the rest of what we need already above; move on.
+        if (titles.length > 1) {
+          //But if there is something more than one title, we should enter it.
+          lastTitle = titles[titles.length - 1];
+
+          whatsLeftAfterTitles = chapterWithNoVersesFromMT1.substring(
+            chapterWithNoVersesFromMT1.indexOf(lastTitle) + lastTitle.length
+          );
+          var entry = {
+            bookAbbreviation: bookNameAbbreviationString,
+            type: "intro",
+            lineText: whatsLeftAfterTitles,
+          };
+          //This logs out the titles of the book
+          //console.log(entry);
+
+          //Store those titles in the notes array
+          notesArray.push(entry);
+        }
+      } else {
+        //if it's a regular chapter, not our introduction
+        for (let verse of verses) {
+          //Take out section headings - this is a general change so is done to all the files but here rather than with rest of them because we have to get the main titles in the first chapter.
+          //\ms, \mr etc
+          var verseContents = verse.toString();
+          var verseNum = verseContents.match(/\d+/);
+
+          var verseContents = verseContents.replace(/\\m.*?\s.*\n/g, "");
+          //\s \s1 etc
+          var verseContents = verseContents.replace(/\\s.*?\s.*\n/g, "");
+
+          //For first entry in verses you have usually just the chapter number alone, so throw it away and move on
+          if (verseContents.length > 8) {
+            //Check for footnotes
+            hasFootnotes = verseContents.includes(`\\f \+`);
+            if (hasFootnotes === true) {
+              //Grab the footnotes in an array
+              var footnotes = verseContents.match(/\\f.*?\\f\u002a.*?/g);
+              console.log(footnotes.length + " = number of footnotes");
+
+              for (let footnote of footnotes) {
+                cutoutatstartandend(footnote, `\\f + `, `\\f*`);
+                footnote = trimmedstring;
+
+                var entry = {
+                  bookAbbreviation: bookNameAbbreviationString,
+                  type: "footnote",
+                  lineText: footnote,
+                };
+                console.log("footnotes below: ");
+                console.log(entry);
+
+                notesArray.push(entry);
+                cutoutmiddle(verseContents, `\\f \+`, `\\f\*`);
+
+                verseContents = trimmedstring;
+              }
+            }
+            //End of has footnotes case
+            var entry = {
+              bookAbbreviation: bookNameAbbreviationString,
+              type: "verse",
+              chapNum: chapNum[0],
+              verseNum: verseNum[0],
+              lineText: verseContents,
+            };
+
+            accArray.push(entry);
+          }
+        }
+      }
+    }
+  }
+}
+
+// var oneChapterByVerse = fileContentsBody.split(splitString);
+// //Leave out the documents that don't have more than two verses: intros, glossaries etc. This counts the array elements = verses.
+// if (oneChapterByVerse.length > 2) {
+//   //For each verse in the resulting array, make an object that contains the relevent info so we can go back to it
+//   for (const verse of oneChapterByVerse) {
+//     //Get verse number
+//     var verseNumber = verse.substring(0, verse.indexOf(`"`));
+//     //Get the verse string without the nbsp;. substring with no second argument goes to end of string
+
+//     var verseInteriorIndex = verse.indexOf(`&nbsp;</span>`);
+
+//     var verseString = verse.substring(verseInteriorIndex);
+//     //Now we're changing the verseString and stripping off bits we don't need
+//     verseString = verseString.substring(
+//       0,
+//       verse.indexOf(`<span id="bookmarks${verseNumber}"></span>`)
+//     );
+
+//     //for each verse, Take out HTML tags
+//     verseString = verseString.replace(/<\/?[^>]+(>|$)/g, "");
+
+//     //There is a nbsp; left over at the beginning of each verse, take it out; rememeber (6) here amounts to "start 6 characters in and go to the end"
+//     verseString = verseString.substring(6);
+
+//     //Now store each verse in the array
+//     var oneVerse = {
+//       id: verseid,
+//       file: file,
+//       folder: collection.folder,
+//       collectionName: collection.name,
+//       verseText: verseString,
+//       bookAndChapter: bookAndChapter,
+//       verseNumber: verseNumber,
+//     };
+//     allVersesArray.push(oneVerse);
+//     verseid++;
+//   }
+
+ipcMain.on("start-conversion", (event, currentFileList) => {
+  conversion(currentFileList);
 });
 
 app.on("window-all-closed", function () {

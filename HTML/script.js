@@ -211,6 +211,17 @@ function newList() {
 
 function convert() {
   console.log("convert");
+  //userfeedback
+  convertButton.innerHTML = `<img src="loading2.gif">`;
+  if (
+    Array.from(document.getElementsByClassName("file-list-item")).length ===
+    currentFileList.length
+  ) {
+    console.log("good to go");
+  }
+  setTimeout(function () {
+    ipcRenderer.send("start-conversion", currentFileList);
+  }, 40);
 }
 
 function addFiles(files) {
@@ -267,6 +278,7 @@ function addFiles(files) {
 
   for (let file of currentFileList) {
     let entryToAdd = document.createElement("option");
+    entryToAdd.setAttribute("class", "file-list-item");
     entryToAdd.setAttribute("value", file.path);
     entryToAdd.innerHTML = file.name;
     fileListBox.appendChild(entryToAdd);
