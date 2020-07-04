@@ -19,6 +19,7 @@ let openButton = document.getElementById("openButton"),
   newListButton = document.getElementById("newListButton"),
   convertButton = document.getElementById("convertButton"),
   fileListBox = document.getElementById("documentListBox"),
+  overlay = document.getElementById("overlayid"),
   currentFileList = [];
 
 const appFeedbackemail = myData.otherText.giveFeedbackemail;
@@ -126,20 +127,26 @@ if (!remote.process.platform === "darwin") {
 function openList() {
   let options = {
     //Placeholder 1
-    title: "Save USFM book list",
+    title: "Open USFM book list",
     defaultPath: desktopPath,
     filters: [
-      { name: "JSON files", extensions: ["json"] },
+      { name: "U2AC files", extensions: ["u2ac"] },
       { name: "All Files", extensions: ["*"] },
     ],
     properties: ["openFile"],
   };
+
+  currentFileList = [];
+  localStorage.removeItem("currentFileList");
+
   dialog
     .showOpenDialog(WIN, options)
     .then((result) => {
       filePathToOpen = result.filePaths[0];
       let rawdata = fs.readFileSync(`${filePathToOpen}`, "utf-8");
       currentFileList = JSON.parse(rawdata);
+      console.log("currentFileList: ");
+
       console.log(currentFileList);
       //Now populate the list
       fileListBox.innerHTML = "";
@@ -172,7 +179,7 @@ function saveList(currentFileList, andClear) {
 
     //Placeholder 3
     filters: [
-      { name: "JSON files", extensions: ["json"] },
+      { name: "U2AC files", extensions: ["u2ac"] },
       { name: "All Files", extensions: ["*"] },
     ],
   };
@@ -207,21 +214,21 @@ function newList() {
       } else if (result.response === 1) {
         // bound to buttons array
         fileListBox.innerHTML = "";
+        currentFileList = [];
+        localStorage.removeItem("currentFileList");
       }
     });
 }
 
 function convert() {
-  console.log("convert");
+  console.log("Converting...");
   //userfeedback
-  convertButton.innerHTML = `<img src="loading2.gif">`;
-  console.log(Array.from(document.getElementsByClassName("file-list-item")));
-  console.log(currentFileList.length);
+  overlay.style.display = "flex";
+
   if (
     Array.from(document.getElementsByClassName("file-list-item")).length ===
     currentFileList.length
   ) {
-    console.log("good to go");
   }
   setTimeout(function () {
     ipcRenderer.send("start-conversion", currentFileList);
@@ -357,9 +364,20 @@ fileListBox.addEventListener("keydown", (event) => {
   fileListBox.remove(fileListBox.selectedIndex);
 });
 
-ipcRenderer.on("indexing-done", (e, accArray, notesArray) => {
+ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
+  //Now the indexes are built and it's time to write the files.
+  console.log("in indexing-done");
+
+  localStorage.removeItem("accArray");
+  localStorage.removeItem("notesArray");
+  localStorage.removeItem("errorArray");
   localStorage.setItem("accArray", JSON.stringify(accArray));
   localStorage.setItem("notesArray", JSON.stringify(notesArray));
-  convertButton.innerHTML = "Convert";
-  alert("done");
+  localStorage.setItem("errorArray", JSON.stringify(errorArray));
+
+  overlay.style.display = "none";
+  //this ugly thing gives the overlay time to disappear before the alert blocks it
+  setTimeout(function () {
+    alert("Conversion complete with " + errorArray.length + " errors");
+  }, 40);
 });

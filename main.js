@@ -4,17 +4,17 @@ const myData = require("./mydata");
 const appText = myData.otherText;
 const transl = myData.myTranslations;
 //Set up some info about the app
-let MyAppVersion = app.getVersion();
-let accArray = [];
-let notesArray = [];
-let trimmedstring;
-let currentFileList;
-
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
-let mainWindow;
-let mainMenu;
-let contextMenu;
+let MyAppVersion = app.getVersion(),
+  // accArray = [],
+  // notesArray = [],
+  // errorArray = [],
+  trimmedstring,
+  currentFileList,
+  // Keep a global reference of the window object, if you don't, the window will
+  // be closed automatically when the JavaScript object is garbage collected.
+  mainWindow,
+  mainMenu,
+  contextMenu;
 
 // Window state keeper - this and below windowStateKeeper code let the window
 //return at its last known dimensions and location when reopened.
@@ -73,6 +73,20 @@ app.on("ready", () => {
   // Create main window
   createWindow();
   createMenus();
+
+  //Testing mode
+  var testing;
+  //Comment out to disable automatic testing of the test file
+  //testing = true;
+  if (testing === true) {
+    let rawdata = fs.readFileSync(
+      "/Users/corey/Desktop/testingfile.u2ac",
+      "utf-8"
+    );
+    currentFileList = JSON.parse(rawdata);
+    conversion(currentFileList);
+  }
+  //End testing mode
 });
 
 //------------------------
@@ -230,23 +244,10 @@ ipcMain.on("lang-changed-reload-pages", (e) => {
   mainWindow.show();
 });
 
-//Testing mode
-var testing;
-//Comment out to disable automatic testing of the test file
-//testing = true;
-if (testing === true) {
-  let rawdata = fs.readFileSync(
-    "/Users/corey/Desktop/testingfile.json",
-    "utf-8"
-  );
-  currentFileList = JSON.parse(rawdata);
-  conversion(currentFileList);
-}
-//End testing mode
-
 function sendmessage() {
   mainWindow.send("incoming-index");
 }
+
 function cutoutmiddle(str, wheretostartcut, wheretoendcut) {
   wheretostartcutindex = str.indexOf(wheretostartcut);
   wheretoendcutindex = str.indexOf(wheretoendcut) + wheretoendcut.length;
@@ -266,6 +267,9 @@ function cutoutatstartandend(str, whattocutatstart, whattocutatend) {
 
 //Conversion
 function conversion(files) {
+  let accArray = [],
+    notesArray = [],
+    errorArray = [];
   for (let file of files) {
     //file by file, get the contents into a workable string
     var fileContents = fs.readFileSync(file.path, "utf8");
@@ -420,49 +424,30 @@ function conversion(files) {
       }
     }
   }
-  // sendmessage();
-  mainWindow.send("indexing-done", accArray, notesArray);
 
-  console.log("last bracket");
+  //now the conversion is done, let's do some error checking.
+  function errorchecking(array, searchforwhat) {
+    for (let element of array) {
+      var backslashPresent = element.lineText.includes(searchforwhat);
+      if (backslashPresent === true) {
+        var entry = {
+          bookAbbreviation: element.bookAbbreviation,
+          type: element.type,
+          chapNum: element.chapNum,
+          verseNum: element.verseNum,
+          lineText: element.lineText,
+        };
+        errorArray.push(entry);
+      }
+    }
+  }
+
+  errorchecking(accArray, "\\");
+  errorchecking(notesArray, "\\");
+  setTimeout(function () {
+    mainWindow.send("indexing-done", accArray, notesArray, errorArray);
+  }, 2000);
 }
-
-// var oneChapterByVerse = fileContentsBody.split(splitString);
-// //Leave out the documents that don't have more than two verses: intros, glossaries etc. This counts the array elements = verses.
-// if (oneChapterByVerse.length > 2) {
-//   //For each verse in the resulting array, make an object that contains the relevent info so we can go back to it
-//   for (const verse of oneChapterByVerse) {
-//     //Get verse number
-//     var verseNumber = verse.substring(0, verse.indexOf(`"`));
-//     //Get the verse string without the nbsp;. substring with no second argument goes to end of string
-
-//     var verseInteriorIndex = verse.indexOf(`&nbsp;</span>`);
-
-//     var verseString = verse.substring(verseInteriorIndex);
-//     //Now we're changing the verseString and stripping off bits we don't need
-//     verseString = verseString.substring(
-//       0,
-//       verse.indexOf(`<span id="bookmarks${verseNumber}"></span>`)
-//     );
-
-//     //for each verse, Take out HTML tags
-//     verseString = verseString.replace(/<\/?[^>]+(>|$)/g, "");
-
-//     //There is a nbsp; left over at the beginning of each verse, take it out; rememeber (6) here amounts to "start 6 characters in and go to the end"
-//     verseString = verseString.substring(6);
-
-//     //Now store each verse in the array
-//     var oneVerse = {
-//       id: verseid,
-//       file: file,
-//       folder: collection.folder,
-//       collectionName: collection.name,
-//       verseText: verseString,
-//       bookAndChapter: bookAndChapter,
-//       verseNumber: verseNumber,
-//     };
-//     allVersesArray.push(oneVerse);
-//     verseid++;
-//   }
 
 ipcMain.on("start-conversion", (event, currentFileList) => {
   conversion(currentFileList);

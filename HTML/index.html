@@ -11,45 +11,92 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body id="bodylabel">
+    <div class="overlay" id="overlayid">
+      <img style="opacity: 0.125; margin: auto;" src="loading2.gif" />
+    </div>
+
     <div class="rowcontainer">
       <div class="item">
         <div class="columnist">
           <div class="column-item">
-            <div class="material-icons">system_update_alt</div><br>
-            <div class="instructions">Drag and drop USFM files to the window to start converting to Accordance format</div></div>
-          <div class="column-item">
-            
-          
-            <!-- <div class="instructions">Convert the USFM files to Accordance</div><br> -->
-            <button id="convertButton"  title="Open saved list" style="width:auto;margin-left:auto;margin-right:auto;padding:15px;display:none">Convert</button>
+            <div class="material-icons">system_update_alt</div>
+            <br />
+            <div class="instructions">
+              Drag and drop USFM files to the window to start converting to
+              Accordance format
+            </div>
           </div>
-       
-            <div class="column-item-toolbar">
-             
-            </div>   </div> 
-       
+          <div class="column-item">
+            <!-- <div class="instructions">Convert the USFM files to Accordance</div><br> -->
+            <button
+              id="convertButton"
+              title="Open saved list"
+              style="
+                width: auto;
+                margin-left: auto;
+                margin-right: auto;
+                padding: 15px;
+                display: none;
+              "
+            >
+              Convert
+            </button>
+          </div>
+
+          <div class="column-item-toolbar"></div>
+        </div>
       </div>
 
       <div class="item-right">
-        <div class="columnist"> 
+        <div class="columnist">
           <div class="column-item">
-
             <select id="documentListBox" class="select-css" size="20" multiple>
-              
             </select>
             <div class="column-item-toolbar">
-              <button id="openButton" class="material-icons-buttons" title="Open saved list">vertical_align_top</button>
-              <button id="saveButton" class="material-icons-buttons" title="Save current list">save</button>
-              <button id="newListButton" class="material-icons-buttons" title="New list">add_circle_outline</button>
+              <button
+                id="openButton"
+                class="material-icons-buttons"
+                title="Open saved list"
+              >
+                vertical_align_top
+              </button>
+              <button
+                id="saveButton"
+                class="material-icons-buttons"
+                title="Save current list"
+              >
+                save
+              </button>
+              <button
+                id="newListButton"
+                class="material-icons-buttons"
+                title="New list"
+              >
+                add_circle_outline
+              </button>
             </div>
-
           </div>
-         
-        </div></div>
+        </div>
+      </div>
       <div class="item">
-        <div class="footer"> <a href="https://github.com/ngaretou/usfm-to-accordance">about</a>&emsp;|&emsp;<a href="https://github.com/ngaretou/usfm-to-accordance/issues">support</a>&emsp;|&emsp;<a href="https://github.com/ngaretou/usfm-to-accordance">source code</a>&emsp;|&emsp;<a href="https://www.accordancebible.com/Accordance-Installers">Accordance apps</a>&emsp;|&emsp;<a href="http://accordancefiles2.com/helpfiles/STC/Default_Left.htm#CSHID=topics%2F05_dd%2Fuser_bibles.htm|StartTopic=content%2Ftopics%2F05_dd%2Fuser_bibles.htm|SkinName=accordance_on_mac">Accordance user Bible reference</a> </div>
-      </div></div>
+        <div class="footer">
+          <a href="https://github.com/ngaretou/usfm-to-accordance">about</a
+          >&emsp;|&emsp;<a
+            href="https://github.com/ngaretou/usfm-to-accordance/issues"
+            >support</a
+          >&emsp;|&emsp;<a href="https://github.com/ngaretou/usfm-to-accordance"
+            >source code</a
+          >&emsp;|&emsp;<a
+            href="https://www.accordancebible.com/Accordance-Installers"
+            >Accordance apps</a
+          >&emsp;|&emsp;<a
+            href="http://accordancefiles2.com/helpfiles/STC/Default_Left.htm#CSHID=topics%2F05_dd%2Fuser_bibles.htm|StartTopic=content%2Ftopics%2F05_dd%2Fuser_bibles.htm|SkinName=accordance_on_mac"
+            >Accordance user Bible reference</a
+          >
+        </div>
+      </div>
     </div>
+
     <script src="./script.js"></script>
   </body>
 </html>
