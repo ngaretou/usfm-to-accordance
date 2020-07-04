@@ -2,6 +2,7 @@
 const { remote, shell, ipcRenderer } = require("electron");
 const { dialog } = require("electron").remote;
 const fs = require("fs");
+const path = require("path");
 
 const desktopPath = remote.app.getPath("desktop"),
   WIN = remote.getCurrentWindow();
@@ -364,6 +365,15 @@ fileListBox.addEventListener("keydown", (event) => {
   fileListBox.remove(fileListBox.selectedIndex);
 });
 
+function convertToRtf(plain) {
+  plain = plain.replace(/\n/g, "\\par\n");
+  return (
+    "{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang2057{\\fonttbl{\\f0\\fnil\\fcharset0 Microsoft Sans Serif;}}\n\\viewkind4\\uc1\\pard\\f0\\fs17 " +
+    plain +
+    "\\par\n}"
+  );
+}
+
 ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
   //Now the indexes are built and it's time to write the files.
   console.log("in indexing-done");
@@ -378,6 +388,131 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
   overlay.style.display = "none";
   //this ugly thing gives the overlay time to disappear before the alert blocks it
   setTimeout(function () {
-    alert("Conversion complete with " + errorArray.length + " errors");
-  }, 40);
+    var notify = confirm(
+      "Conversion complete; " +
+        errorArray.length +
+        " errrors.\nChoose where you would like to save the results."
+    );
+    if (notify == true) {
+      let filePathToSaveIn;
+      let options = {
+        title: "Choose where to save converted files",
+        defaultPath: desktopPath,
+        buttonLabel: "Save files here",
+        openDirectory: true,
+        properties: ["openDirectory"],
+      };
+
+      dialog
+        .showOpenDialog(WIN, options)
+        .then((result) => {
+          let verseDataToWrite = "";
+          let errorDataToWrite = "";
+
+          //Get the data together to write for the main BibleOutput.txt
+          for (let verse of accArray) {
+            verseDataToWrite =
+              verseDataToWrite +
+              `${verse.bookAbbreviation} ${verse.chapNum}:${verse.verseNum} ${verse.lineText}`;
+          }
+          for (let error of errorArray) {
+            errorDataToWrite =
+              errorDataToWrite +
+              `${error.bookAbbreviation} ${error.chapNum}:${error.verseNum} ${error.lineText}`;
+          }
+
+          //Find the path to save in
+          filePathToSaveIn = result.filePaths[0];
+          console.log(filePathToSaveIn);
+          function formatDate(date) {
+            var datePart = [
+              date.getFullYear(),
+              date.getMonth() + 1,
+              date.getDate(),
+            ];
+            var timePart = [
+              date.getHours(),
+              date.getMinutes(),
+              date.getSeconds(),
+            ];
+
+            return datePart.join("") + timePart.join("");
+          }
+          currentDateTime = formatDate(new Date());
+
+          //write the contents of the accArray (the verses)
+          // Data which will write in a file.
+
+          // https://shapeshed.com/writing-cross-platform-node/
+          // path.join('foo', '..', 'bar', 'baz/foo');
+          // 'bar/baz/foo' on OSX and Linux
+          // 'bar\\baz\\foo' on Windows
+
+          var filePathToCreate = path.join(
+            filePathToSaveIn,
+            "U2AC" + currentDateTime
+          );
+          //Make the directory
+          fs.mkdir(filePathToCreate, function (err) {
+            if (err) {
+              console.log(err);
+            } else {
+              //Now write the bible file.
+              fs.writeFile(
+                filePathToCreate + "/BibleOutput.txt",
+                verseDataToWrite,
+                (err) => {
+                  // In case of a error throw err.
+                  if (err) throw err;
+                }
+              );
+              //Now write the errors file.
+              if (errorArray.length !== 0) {
+                fs.writeFile(
+                  filePathToCreate + "/ErrorOutput.txt",
+                  errorDataToWrite,
+                  (err) => {
+                    // In case of a error throw err.
+                    if (err) throw err;
+                  }
+                );
+              }
+              if (notesArray.length !== 0) {
+                //Make the User Notes directory
+                filePathUserNotes = path.join(filePathToCreate, "Notes");
+                fs.mkdir(filePathUserNotes, function (err) {
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    for (let note of notesArray) {
+                      //convert the markup text to rtf with the converToRTF function
+                      rtfText = convertToRtf(note.lineText);
+                      //Now write each file.
+                      fs.writeFile(
+                        filePathUserNotes +
+                          `/${note.bookAbbreviation} ${note.chapNum}.${note.verseNum}.rtf`,
+                        rtfText,
+                        (err) => {
+                          // In case of a error throw err.
+                          if (err) throw err;
+                        }
+                      );
+                    }
+                  }
+                });
+              }
+              alert("Converted file saved at " + filePathToCreate);
+            }
+          });
+
+          //write the contents of the notes
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    } else {
+      return;
+    }
+    40;
+  });
 });

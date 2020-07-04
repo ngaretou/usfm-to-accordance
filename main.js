@@ -14,7 +14,9 @@ let MyAppVersion = app.getVersion(),
   // be closed automatically when the JavaScript object is garbage collected.
   mainWindow,
   mainMenu,
-  contextMenu;
+  contextMenu,
+  listofBooksinCurrentBible = [],
+  chaptersByLastVerse = [];
 
 // Window state keeper - this and below windowStateKeeper code let the window
 //return at its last known dimensions and location when reopened.
@@ -265,6 +267,13 @@ function cutoutatstartandend(str, whattocutatstart, whattocutatend) {
   return trimmedstring;
 }
 
+function cutoutatstart(str, whattocutatstart) {
+  var whattocutatstartStr = str.match(whattocutatstart);
+  whattocutatstartindex = whattocutatstartStr[0].length;
+  trimmedstring = str.substring(whattocutatstartindex);
+  return trimmedstring;
+}
+
 //Conversion
 function conversion(files) {
   let accArray = [],
@@ -277,14 +286,18 @@ function conversion(files) {
     // Get a string containing book abbreviation
     bookNameAbbreviation = fileContents.match(/(?<=\\id\s)\w*/);
     bookNameAbbreviationString = bookNameAbbreviation[0].toString();
+    listofBooksinCurrentBible.push(bookNameAbbreviationString);
     //console.log("bookNameAbbreviationString " + bookNameAbbreviationString);
 
     //Now do general changes.
     //Remove °
     var fileContents = fileContents.replace(/\°/g, "");
 
+    var fileContents = fileContents.replace(/\\b/g, "<br>");
+
     //Replace \\p & \q1,\q2 etc with ¶
     var fileContents = fileContents.replace(/\\p\s/g, "¶");
+    var fileContents = fileContents.replace(/\\pm\s/g, "¶");
     var fileContents = fileContents.replace(/\\q.*?\s/g, "¶");
     var fileContents = fileContents.replace(/\\ip.*?\s/g, "¶");
     var fileContents = fileContents.replace(/\\ie/g, "¶");
@@ -343,6 +356,8 @@ function conversion(files) {
         for (let title of titles) {
           var entry = {
             bookAbbreviation: bookNameAbbreviationString,
+            chapNum: chapNum,
+            verseNum: verseNum,
             type: "title",
             lineText: `<b>${title}</b>`,
           };
@@ -376,11 +391,14 @@ function conversion(files) {
           //Take out section headings - this is a general change so is done to all the files but here rather than with rest of them because we have to get the main titles in the first chapter.
           //\ms, \mr etc
           var verseContents = verse.toString();
-          var verseNum = verseContents.match(/\d+/);
+          var verseNum = verseContents.match(/\d+-*\d*/);
 
           var verseContents = verseContents.replace(/\\m.*?\s.*\n/g, "");
           //\s \s1 etc
           var verseContents = verseContents.replace(/\\s.*?\s.*\n/g, "");
+
+          cutoutatstart(verseContents, `\\d+-*\\d*\\s`);
+          verseContents = trimmedstring;
 
           //For first entry in verses you have usually just the chapter number alone, so throw it away and move on
           if (verseContents.length > 8) {
@@ -397,11 +415,11 @@ function conversion(files) {
 
                 var entry = {
                   bookAbbreviation: bookNameAbbreviationString,
+                  chapNum: chapNum,
+                  verseNum: verseNum,
                   type: "footnote",
                   lineText: footnote,
                 };
-                // console.log("footnotes below: ");
-                // console.log(entry);
 
                 notesArray.push(entry);
                 cutoutmiddle(verseContents, `\\f \+`, `\\f\*`);
@@ -423,6 +441,47 @@ function conversion(files) {
         }
       }
     }
+  }
+
+  //Now normalize the versification
+  let rawdata1 = fs.readFileSync(`eng.json`);
+  let KJVversification = JSON.parse(rawdata1);
+  let rawdata2 = fs.readFileSync(`org.json`);
+  let origversification = JSON.parse(rawdata2);
+
+  for (let book of listofBooksinCurrentBible) {
+    console.log(book);
+
+    let versesInCurrentBook = accArray.filter(function (e) {
+      return e.bookAbbreviation === book;
+    });
+    //This makes a new array that only includes the chapters in current book.
+    //[1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] etc - so then we can get the index of the last verse of each chapter and look up the verse number back in the original array
+    const arrChapters = versesInCurrentBook.map((el) => el.chapNum);
+    console.log("arrChapters: should be long list of chapter numbers only");
+
+    console.log(arrChapters);
+
+    //Get a list of the chapter numbers in this book in an array by reducing that array of Chapter numbers to unique values
+    // https://www.samanthaming.com/tidbits/43-3-ways-to-remove-array-duplicates/
+    arrOfChapterNumbers = Array.from(new Set(arrChapters));
+    console.log(arrOfChapterNumbers);
+
+    //Now get the index of the last verse in each chapter
+    //For each chapter in our simplified list of unique chapter numbers - so one result per chapter
+    for (let chapter of arrOfChapterNumbers) {
+      //get the last index of where that chap number appears.
+      let lastverseindex = arrChapters.lastIndexOf(chapter);
+
+      entry = {
+        bookAbbreviation: book,
+        chapNum: chapter,
+        lastverse: accArray[lastverseindex].verseNum,
+      };
+      chaptersByLastVerse.push(entry);
+    }
+    //chaptersByLastVerse gives you the number of the last verse of each chapter in each book.
+    console.log(chaptersByLastVerse);
   }
 
   //now the conversion is done, let's do some error checking.
