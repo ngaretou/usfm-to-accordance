@@ -537,7 +537,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
               date.getSeconds(),
             ];
 
-            return datePart.join("") + timePart.join("");
+            return datePart.join(".") + " " + timePart.join(".");
           }
           currentDateTime = formatDate(new Date());
 
@@ -551,7 +551,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
 
           var filePathToCreate = path.join(
             filePathToSaveIn,
-            "U2AC" + currentDateTime
+            "U2AC " + currentDateTime
           );
           //Make the directory
           fs.mkdir(filePathToCreate, function (err) {
