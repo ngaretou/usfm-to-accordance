@@ -9,14 +9,12 @@ let MyAppVersion = app.getVersion(),
   // notesArray = [],
   // errorArray = [],
   trimmedstring,
-  currentFileList,
+  // currentFileList,
   // Keep a global reference of the window object, if you don't, the window will
   // be closed automatically when the JavaScript object is garbage collected.
   mainWindow,
   mainMenu,
-  contextMenu,
-  listofBooksinCurrentBible = [],
-  chaptersByLastVerse = [];
+  contextMenu;
 
 // Window state keeper - this and below windowStateKeeper code let the window
 //return at its last known dimensions and location when reopened.
@@ -278,7 +276,9 @@ function cutoutatstart(str, whattocutatstart) {
 function conversion(files) {
   let accArray = [],
     notesArray = [],
-    errorArray = [];
+    errorArray = [],
+    listofBooksinCurrentBible = [],
+    chaptersByLastVerse = [];
   for (let file of files) {
     //file by file, get the contents into a workable string
     var fileContents = fs.readFileSync(file.path, "utf8");
@@ -287,45 +287,138 @@ function conversion(files) {
     bookNameAbbreviation = fileContents.match(/(?<=\\id\s)\w*/);
     bookNameAbbreviationString = bookNameAbbreviation[0].toString();
     listofBooksinCurrentBible.push(bookNameAbbreviationString);
-    //console.log("bookNameAbbreviationString " + bookNameAbbreviationString);
 
     //Now do general changes.
-    //Remove °
-    var fileContents = fileContents.replace(/\°/g, "");
-
-    var fileContents = fileContents.replace(/\\b/g, "<br>");
-
-    //Replace \\p & \q1,\q2 etc with ¶
-    var fileContents = fileContents.replace(/\\p\s/g, "¶");
-    var fileContents = fileContents.replace(/\\pm\s/g, "¶");
-    var fileContents = fileContents.replace(/\\q.*?\s/g, "¶");
-    var fileContents = fileContents.replace(/\\ip.*?\s/g, "¶");
-    var fileContents = fileContents.replace(/\\ie/g, "¶");
-
-    //Replace \fk, fq, fr...\ft with <b>...</b>
+    // var fileContents = fileContents.replace(/\\s.*?\s.*\n/g, "");
+    //\p \pmo \pm marks have to be inside, not outside, their associated verses
     var fileContents = fileContents.replace(
-      /(\\fr\s)(\d+[.:]\d+)(\s\\fk\s)(.*?)(\s\\ft)/g,
-      `<b>$2</b> <b>$4</b>`
+      /(\\p\w*\r\n)(\\v\s)(\d*\s)/g,
+      "$2$3¶ "
     );
 
-    // console.log(fileContents);
+    //Cleanup of an unusual case where there was \c 5 \b \q1 \v 1: that extra marker in between \c  and \v threw an error when parsed to an array of verses later on
+    var fileContents = fileContents.replace(
+      /(\\c\s\d+\r\n)(\\\w+\r\n)(\\\w+\r\n)/g,
+      `$1$3`
+    );
 
-    var fileContents = fileContents.replace(/\\fk\s/g, "<b>");
-    var fileContents = fileContents.replace(/\\fq\s/g, "<b>");
-    var fileContents = fileContents.replace(/\\fr\s/g, "<b>");
-    var fileContents = fileContents.replace(/(?<!\s)\\ft/g, "</b>"); //instances where there is no space before the \ft
-    var fileContents = fileContents.replace(/\s\\ft/g, "</b>");
+    //Above changing para marks to be inside their verse numbers - this time for dash-separated verse marks
+    var fileContents = fileContents.replace(
+      /(\\p\r\n)(\\v\s)(\d*-\d*\s)/g,
+      "$2$3¶ "
+    );
+    //Also get \li* marks inside their verse numbers - this continues to get verse numbers inline
+    var fileContents = fileContents.replace(
+      /(\\li\d*\r\n)(\\v\s)(\d*\s)/g,
+      "$2$3¶ "
+    );
+    //Also get \li* marks inside their verse numbers - this time for dash-separated verse marks
+    var fileContents = fileContents.replace(
+      /(\\li\d*\s)(\\v\s)(\d*-\d*\s)/g,
+      "$2$3¶ "
+    );
+
+    //at this point any remaining \p markers are mid-verse so get <br>
+    var fileContents = fileContents.replace(/\r\n\\p\w*\s/g, "<br>");
+
+    //q1, q2 when next to a \v get para mark; otherwise get <br>
+    var fileContents = fileContents.replace(
+      /(\\q\d*\r\n)(\\v\s)(\d*\s)/g,
+      `$2$3¶ `
+    );
+    var fileContents = fileContents.replace(/\r\n\\q.*?\s/g, "<br>");
+
+    // But /ip intro paragraph gets the para mark
+    var fileContents = fileContents.replace(/\\ip.*?\s/g, "¶");
+
+    //Remove °
+    var fileContents = fileContents.replace(/\°/g, "");
+    var fileContents = fileContents.replace(/---/g, "-");
+
+    //Replace \\p & \q1,\q2 etc with ¶
+
+    //Some li* markers have carriage returns that we need to eliminate when li >> br
+    var fileContents = fileContents.replace(/\r\n\\li\d*/g, "<br>");
+    var fileContents = fileContents.replace(/\r\n\\ie/g, "<br>");
+    //others do not, we just replace them with br
+    var fileContents = fileContents.replace(/\\li\d*/g, "<br>");
+    var fileContents = fileContents.replace(/\\ie/g, "<br>");
+
+    //Replace \fk, fq, fr...\ft with <b>...</b>
+    // var fileContents = fileContents.replace(
+    //   /(\\fr\s)(\d+[.:]\d+)(\s\\fk\s)(.*?)(\s\\ft)/g,
+    //   `<b>$2</b> <b>$4</b>`
+    // );
+
+    //The order is important!
+    //fq...fk italics
+    var fileContents = fileContents.replace(
+      /(\\fq\s)(.*?)(\\ft)/g,
+      `<i>$2</i>`
+    );
+    //Footnote ref callers
+    // var fileContents = fileContents.replace(/(\\fr\s)/g, `<b>`);
+    // var fileContents = fileContents.replace(/(\\ft)/g, `</b>`);
+    // //\fk only appears in between fr and ft and always is in the middle of bold so get rid of it.
+    // var fileContents = fileContents.replace(/(\\fk\s)/g, "");
+    //Temporarily not doing bold
+    var fileContents = fileContents.replace(/(\\fr\s)/g, `<b>`);
+    var fileContents = fileContents.replace(/(\s\\ft)/g, `</b>`);
+    var fileContents = fileContents.replace(/(\\ft)/g, `</b>`); //as above but catching ones without whitespace before - only one or two
+    //\fk only appears in between fr and ft and always is in the middle of bold so get rid of it.
+    var fileContents = fileContents.replace(/(\\fk\s)/g, "");
+    var fileContents = fileContents.replace(/(\\fk\*\s)/g, "</b>");
+    var fileContents = fileContents.replace(
+      /(\\fq\s)(.*?)(\\ft\s)/g,
+      `<i>$2</i>`
+    );
+    var fileContents = fileContents.replace(
+      /(\\fq\s)(.*?)(\\fq\*)/g,
+      `<i>$2</i>`
+    );
+    var fileContents = fileContents.replace(
+      /(\\fqa*\s)(.*?)(\\f\*)/g,
+      `<i>$2</i> $3`
+    );
+    var fileContents = fileContents.replace(
+      /(\\qs\s)(.*?)(\\qs\*)/g,
+      `<i>$2</i>`
+    );
+    var fileContents = fileContents.replace(
+      /(\\qt\s)(.*?)(\\qt\*)/g,
+      `<i>$2</i>`
+    );
+
+    // var fileContents = fileContents.replace(
+    //   /(\\fk\s)(.*?)(\\fk\*)/g,
+    //   `<b>$2</b>`
+    // );
+
+    // var fileContents = fileContents.replace(/\\fk\s/g, "<b>");
+    // // var fileContents = fileContents.replace(/\\fq\s/g, "<b>");
+
+    // var fileContents = fileContents.replace(/\\fr\s/g, "<b>");
+    // var fileContents = fileContents.replace(/(?<!\s)\\ft/g, "</b>"); //instances where there is no space before the \ft
+    // var fileContents = fileContents.replace(/\s\\ft/g, "</b>");
 
     //italics
     var fileContents = fileContents.replace(/\\bk\s/g, "<i>");
-    var fileContents = fileContents.replace(/\\bk\\*/g, "</i>");
+    var fileContents = fileContents.replace(/\\bk\*/g, "</i>");
+    var fileContents = fileContents.replace(/\\k\s/g, "<i>");
+    var fileContents = fileContents.replace(/\\k\*\s/g, "</i>");
 
     //intro outline lists
     var fileContents = fileContents.replace(/\\ili\s/g, "¶•  ");
 
     //Take out glossary terms (for now)
-    var fileContents = fileContents.replace(/\|.*?:\\w\*/g, "");
-    var fileContents = fileContents.replace(/\\w\s/g, "");
+    var fileContents = fileContents.replace(/\|.*?:\\\+*w\*/g, ""); // |glossaryterm\w
+    var fileContents = fileContents.replace(/\\\+*w\s/g, ""); //\w, \+w
+
+    //Take out \\b and replace with inline <br> line breaks
+    //but first an unusual case - in case of \c X \b \xxx
+    var fileContents = fileContents.replace(/(\\c\s\d*\r\n)(\\b\r\n)/g, "$1");
+    //now that \b to <br>
+    var fileContents = fileContents.replace(/\r\n\\b/g, "<br>");
 
     //split the file contents into chapters
     var chapters = fileContents.split(/\\c\s/);
@@ -333,7 +426,6 @@ function conversion(files) {
     //split chapter into verses
     for (let chapter of chapters) {
       chapNum = chapter.match(/\d+/);
-      // console.log("chapter " + chapNum[0]);
 
       var verses = chapter.split(/\\v\s/);
       if (verses.length < 2) {
@@ -357,11 +449,10 @@ function conversion(files) {
           var entry = {
             bookAbbreviation: bookNameAbbreviationString,
             chapNum: chapNum,
-            verseNum: verseNum,
+            verseNum: 0,
             type: "title",
             lineText: `<b>${title}</b>`,
           };
-          // console.log("titles " + entry.lineText);
 
           //Store those titles in the notes array
           notesArray.push(entry);
@@ -374,13 +465,16 @@ function conversion(files) {
           whatsLeftAfterTitles = chapterWithNoVersesFromMT1.substring(
             chapterWithNoVersesFromMT1.indexOf(lastTitle) + lastTitle.length
           );
+
+          //At this point, the only thing left are intros and other front matter, so put a verse 0 on it and it will go to the beginning of the notes book when it is formed.
+
           var entry = {
             bookAbbreviation: bookNameAbbreviationString,
+            chapNum: chapNum,
+            verseNum: 0,
             type: "intro",
             lineText: whatsLeftAfterTitles,
           };
-          //This logs out the titles of the book
-          //console.log(entry);
 
           //Store those titles in the notes array
           notesArray.push(entry);
@@ -391,10 +485,15 @@ function conversion(files) {
           //Take out section headings - this is a general change so is done to all the files but here rather than with rest of them because we have to get the main titles in the first chapter.
           //\ms, \mr etc
           var verseContents = verse.toString();
-          var verseNum = verseContents.match(/\d+-*\d*/);
 
+          //Accordance doesn't care about missing verses. They only care about extra verses, and there can be none.
+          //What it doesn't handle well is dashed verses, so if we get rid of the second number on any dashed verses, that should work well in most cases.
+          // var verseNum = verseContents.match(/\d+-*\d*/); //This would get dashed verses
+          var verseNum = verseContents.match(/\d+/); //This strips off dashes and only gets that first number.
+
+          //Accordance does not take section headings, just verse text, so blow away \s \s1 \sp etc
           var verseContents = verseContents.replace(/\\m.*?\s.*\n/g, "");
-          //\s \s1 etc
+
           var verseContents = verseContents.replace(/\\s.*?\s.*\n/g, "");
 
           cutoutatstart(verseContents, `\\d+-*\\d*\\s`);
@@ -407,7 +506,6 @@ function conversion(files) {
             if (hasFootnotes === true) {
               //Grab the footnotes in an array
               var footnotes = verseContents.match(/\\f.*?\\f\u002a.*?/g);
-              // console.log(footnotes.length + " = number of footnotes");
 
               for (let footnote of footnotes) {
                 cutoutatstartandend(footnote, `\\f + `, `\\f*`);
@@ -443,14 +541,12 @@ function conversion(files) {
     }
   }
 
-  //Now normalize the versification
-  let rawdata1 = fs.readFileSync(`eng.json`);
-  let KJVversification = JSON.parse(rawdata1);
-  let rawdata2 = fs.readFileSync(`org.json`);
-  let origversification = JSON.parse(rawdata2);
+  //Now normalize the versification.
 
+  //First get current Bible versification
   for (let book of listofBooksinCurrentBible) {
-    console.log(book);
+    // console.log("listofBooksinCurrentBible");
+    // console.log(book);
 
     let versesInCurrentBook = accArray.filter(function (e) {
       return e.bookAbbreviation === book;
@@ -458,14 +554,12 @@ function conversion(files) {
     //This makes a new array that only includes the chapters in current book.
     //[1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] etc - so then we can get the index of the last verse of each chapter and look up the verse number back in the original array
     const arrChapters = versesInCurrentBook.map((el) => el.chapNum);
-    console.log("arrChapters: should be long list of chapter numbers only");
-
-    console.log(arrChapters);
 
     //Get a list of the chapter numbers in this book in an array by reducing that array of Chapter numbers to unique values
     // https://www.samanthaming.com/tidbits/43-3-ways-to-remove-array-duplicates/
     arrOfChapterNumbers = Array.from(new Set(arrChapters));
-    console.log(arrOfChapterNumbers);
+    // console.log("arrOfChapterNumbers");
+    // console.log(arrOfChapterNumbers);
 
     //Now get the index of the last verse in each chapter
     //For each chapter in our simplified list of unique chapter numbers - so one result per chapter
@@ -473,22 +567,141 @@ function conversion(files) {
       //get the last index of where that chap number appears.
       let lastverseindex = arrChapters.lastIndexOf(chapter);
 
+      var lastversenumber = versesInCurrentBook[lastverseindex].verseNum;
+
+      var dashedVersesCheck = lastversenumber.search("-");
+      if (dashedVersesCheck !== -1) {
+        console.log("dashed verses check here:");
+        console.log(lastversenumber + " becomes:");
+        lastversenumber = lastversenumber.substring(dashedVersesCheck + 1);
+        // console.log(lastversenumber);
+      }
+
       entry = {
         bookAbbreviation: book,
         chapNum: chapter,
-        lastverse: accArray[lastverseindex].verseNum,
+        lastverse: lastversenumber,
       };
       chaptersByLastVerse.push(entry);
     }
-    //chaptersByLastVerse gives you the number of the last verse of each chapter in each book.
-    console.log(chaptersByLastVerse);
   }
+  //chaptersByLastVerse gives you the number of the last verse of each chapter in each book.
+  // console.log(
+  //   "chaptersByLastVerse gives you the number of the last verse of each chapter in each book."
+  // );
+  // console.log(chaptersByLastVerse);
+  let rawdata1 = fs.readFileSync(`eng.json`);
+  let KJVversification = JSON.parse(rawdata1);
+  let rawdata2 = fs.readFileSync(`org.json`);
+  let origversification = JSON.parse(rawdata2);
+
+  //Get array of book names in our current Bible
+  const arrBooks = chaptersByLastVerse.map((el) => el.bookAbbreviation);
+  arrOfBooks = Array.from(new Set(arrBooks));
+  //Keep track of how many chapters are longer or shorter than KJV
+  var longer = 0;
+  var shorter = 0;
+  for (let bookName of arrOfBooks) {
+    //   console.log(arrOfBooks);
+    //   console.log(bookName);
+    //   console.log("this is should be identitcal to next");
+
+    // console.log(origversification.maxVerses.GEN);
+    // console.log(origversification);
+
+    //Get array of current book lastverses
+    var currentBookObject = chaptersByLastVerse.filter((obj) => {
+      return obj.bookAbbreviation === bookName;
+    });
+    const currentBookLastVersesArray = currentBookObject.map(
+      (el) => el.lastverse
+    );
+    //Compare to original versification
+    if (
+      currentBookLastVersesArray.length !=
+      origversification.maxVerses[bookName].length
+    ) {
+      console.log(
+        bookName +
+          " chapters are out of sync with Original versification: " +
+          currentBookLastVersesArray.length +
+          "chapters in current " +
+          bookName +
+          ", " +
+          origversification.maxVerses[bookName].length +
+          " in Original."
+      );
+    }
+    //Compare to KJV versification
+    if (
+      currentBookLastVersesArray.length !=
+      KJVversification.maxVerses[bookName].length
+    ) {
+      console.log(
+        bookName +
+          " chapters are out of sync with KJV versification: " +
+          currentBookLastVersesArray.length +
+          " chapters in current " +
+          bookName +
+          ", " +
+          KJVversification.maxVerses[bookName].length +
+          " in KJV schema."
+      );
+    } //Now for each verse in this bookName book, check lastverse
+
+    for (var i = 0; i < KJVversification.maxVerses[bookName].length; i++) {
+      if (
+        currentBookLastVersesArray[i] > KJVversification.maxVerses[bookName][i]
+      ) {
+        longer++;
+        console.log(
+          bookName + " ch " + (i + 1) + " is longer than KJV versification."
+        );
+      } else if (
+        currentBookLastVersesArray[i] < KJVversification.maxVerses[bookName][i]
+      ) {
+        shorter++;
+        console.log(
+          bookName + " ch " + (i + 1) + " is shorter than KJV versification."
+        );
+      }
+    }
+
+    // console.log(currentBookLastVersesArray);
+    // console.log(origversification.maxVerses[bookName]);
+  }
+  console.log(longer + " chapters longer");
+  console.log(shorter + " chapters shorter");
+  //First check if the book we're dealing with and the original versification book are the same; if not log it out
+
+  // if (!=origversification.maxVerses[bookName].length){
+  //   console.log();
+  // }
+
+  //** End of versification checking */
 
   //now the conversion is done, let's do some error checking.
   function errorchecking(array, searchforwhat) {
     for (let element of array) {
-      var backslashPresent = element.lineText.includes(searchforwhat);
-      if (backslashPresent === true) {
+      var errorPresent = element.lineText.includes(searchforwhat);
+      if (errorPresent === true) {
+        var entry = {
+          bookAbbreviation: element.bookAbbreviation,
+          type: element.type,
+          chapNum: element.chapNum,
+          verseNum: element.verseNum,
+          lineText: element.lineText,
+        };
+        errorArray.push(entry);
+      }
+    }
+  }
+
+  function errorchecking2(array) {
+    for (let element of array) {
+      var testArray = element.lineText.split(/\n/);
+      //testing to see if there are mulitple carriage returns per line
+      if (testArray.length >= 3) {
         var entry = {
           bookAbbreviation: element.bookAbbreviation,
           type: element.type,
@@ -503,6 +716,8 @@ function conversion(files) {
 
   errorchecking(accArray, "\\");
   errorchecking(notesArray, "\\");
+  errorchecking(accArray, "\r\n<br>\r\n");
+  errorchecking2(accArray);
   setTimeout(function () {
     mainWindow.send("indexing-done", accArray, notesArray, errorArray);
   }, 2000);
@@ -511,6 +726,10 @@ function conversion(files) {
 ipcMain.on("start-conversion", (event, currentFileList) => {
   conversion(currentFileList);
 });
+
+// ipcMain.on("clear-currentFileList", (event) => {
+//   currentFileList = [];
+// });
 
 app.on("window-all-closed", function () {
   // On OS X it is common for applications and their menu bar
