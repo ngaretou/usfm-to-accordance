@@ -762,6 +762,82 @@ function conversion(files) {
     }
   }
 
+  function moveVerseContentIntoPrevious(
+    book,
+    chapterToAddTo,
+    verseToAddTo,
+    chapter,
+    verse
+  ) {
+    //First get the content of the verse to grab
+    var verseTextToMove;
+    var verseTextToAddTo;
+    for (var i = 0; i < accArray.length; i++) {
+      if (
+        accArray[i].bookAbbreviation === book &&
+        accArray[i].chapNum === chapter &&
+        accArray[i].verseNum === verse
+      ) {
+        verseTextToMove = accArray[i].lineText;
+        verseTextToMove = verseTextToMove.replace(/¶/g, "");
+        //Now delete that element
+        accArray.splice(i, 1);
+        break;
+      }
+    }
+    //Now find the verse to combine it with
+    for (var i = 0; i < accArray.length; i++) {
+      if (
+        accArray[i].bookAbbreviation === book &&
+        accArray[i].chapNum === chapterToAddTo &&
+        accArray[i].verseNum === verseToAddTo
+      ) {
+        verseTextToAddTo = accArray[i].lineText;
+        verseTextToAddTo = verseTextToAddTo.replace(/\r\n/g, "");
+        accArray[i].lineText = verseTextToAddTo + " " + verseTextToMove;
+        break;
+      }
+    }
+  }
+
+  function moveVerseContentIntoFollowing(
+    book,
+    chapterToAddTo,
+    verseToAddTo,
+    chapter,
+    verse
+  ) {
+    //First get the content of the verse to grab
+    var verseTextToMove;
+    var verseTextToAddTo;
+    for (var i = 0; i < accArray.length; i++) {
+      if (
+        accArray[i].bookAbbreviation === book &&
+        accArray[i].chapNum === chapter &&
+        accArray[i].verseNum === verse
+      ) {
+        verseTextToMove = accArray[i].lineText;
+        verseTextToMove = verseTextToMove.replace(/\r\n/g, "");
+        //Now delete that element
+        accArray.splice(i, 1);
+        break;
+      }
+    }
+    //Now find the verse to combine it with
+    for (var i = 0; i < accArray.length; i++) {
+      if (
+        accArray[i].bookAbbreviation === book &&
+        accArray[i].chapNum === chapterToAddTo &&
+        accArray[i].verseNum === verseToAddTo
+      ) {
+        verseTextToAddTo = accArray[i].lineText;
+        verseTextToAddTo = verseTextToAddTo.replace(/¶/g, "");
+        accArray[i].lineText = verseTextToMove + verseTextToAddTo;
+        break;
+      }
+    }
+  }
+
   //Normalize versification
   // KJV << Orig
   // "GEN 31:55": "GEN 32:1",
@@ -782,6 +858,9 @@ function conversion(files) {
   changeVerseRange("LEV", "6", "8", "30", "6", "1", "23");
   changeVerseRange("NUM", "16", "36", "50", "17", "1", "15");
   changeVerseRange("NUM", "17", "1", "13", "17", "16", "28");
+
+  moveVerseContentIntoFollowing("NUM", "26", "1", "25", "19");
+
   change1Verse("NUM", "29", "40", "30", "1");
   changeVerseRange("NUM", "30", "1", "16", "30", "2", "17");
   change1Verse("DEU", "12", "32", "13", "1");
@@ -790,7 +869,9 @@ function conversion(files) {
   changeVerseRange("DEU", "23", "1", "25", "23", "2", "26");
   change1Verse("DEU", "29", "1", "28", "69");
   changeVerseRange("DEU", "29", "2", "29", "29", "1", "28");
-  change1Verse("1SA", "20", "42", "21", "1");
+
+  moveVerseContentIntoPrevious("1SA", "20", "42", "21", "1");
+
   changeVerseRange("1SA", "21", "1", "15", "21", "2", "16");
   change1Verse("1SA", "23", "29", "24", "1");
   changeVerseRange("1SA", "24", "1", "22", "24", "2", "23");
@@ -798,7 +879,11 @@ function conversion(files) {
   changeVerseRange("2SA", "19", "1", "43", "19", "2", "44");
   changeVerseRange("1KI", "4", "21", "34", "5", "1", "14");
   changeVerseRange("1KI", "5", "1", "18", "5", "15", "32");
-  changeVerseRange("1KI", "22", "43", "53", "22", "44", "54");
+
+  moveVerseContentIntoPrevious("1KI", "22", "43", "22", "44");
+
+  changeVerseRange("1KI", "22", "44", "53", "22", "45", "54");
+
   change1Verse("2KI", "11", "21", "12", "1");
   changeVerseRange("2KI", "12", "1", "21", "12", "2", "22");
   changeVerseRange("1CH", "6", "1", "15", "5", "27", "41");
@@ -844,20 +929,35 @@ function conversion(files) {
   changeVerseRange("PSA", "47", "0", "9", "47", "1", "10");
   changeVerseRange("PSA", "48", "0", "14", "48", "1", "15");
   changeVerseRange("PSA", "49", "0", "20", "49", "1", "21");
-  change1Verse("PSA", "51", "0", "51", "2");
+  //Ps51
+  //First move verse 1 into v 0
+  change1Verse("PSA", "51", "0", "51", "1");
+  //Now  move v 2 into v 0
+  moveVerseContentIntoPrevious("PSA", "51", "0", "51", "2");
+  //Now continue the changes
   changeVerseRange("PSA", "51", "1", "19", "51", "3", "21");
-  change1Verse("PSA", "52", "0", "52", "2");
+  //Ps52
+  change1Verse("PSA", "52", "0", "52", "1");
+  moveVerseContentIntoPrevious("PSA", "52", "0", "52", "2");
   changeVerseRange("PSA", "52", "1", "9", "52", "3", "11");
+
   changeVerseRange("PSA", "53", "0", "6", "53", "1", "7");
-  change1Verse("PSA", "54", "0", "54", "2");
+
+  //Ps54
+  change1Verse("PSA", "54", "0", "54", "1");
+  moveVerseContentIntoPrevious("PSA", "54", "0", "54", "2");
   changeVerseRange("PSA", "54", "1", "7", "54", "3", "9");
+
   changeVerseRange("PSA", "55", "0", "23", "55", "1", "24");
   changeVerseRange("PSA", "56", "0", "13", "56", "1", "14");
   changeVerseRange("PSA", "57", "0", "11", "57", "1", "12");
   changeVerseRange("PSA", "58", "0", "11", "58", "1", "12");
   changeVerseRange("PSA", "59", "0", "17", "59", "1", "18");
+  //Ps60
   change1Verse("PSA", "60", "0", "60", "2");
+  moveVerseContentIntoPrevious("PSA", "60", "0", "60", "2");
   changeVerseRange("PSA", "60", "1", "12", "60", "3", "14");
+
   changeVerseRange("PSA", "61", "0", "8", "61", "1", "9");
   changeVerseRange("PSA", "62", "0", "12", "62", "1", "13");
   changeVerseRange("PSA", "63", "0", "11", "63", "1", "12");
@@ -1057,6 +1157,33 @@ function conversion(files) {
   //************************* */
 
   checkVersification();
+
+  //Change book names to align with Accordance's preferred spelling
+  function changeBookNames(array) {
+    for (let element of array) {
+      var ParatextBookAbbr = element.bookAbbreviation;
+      if (ParatextBookAbbr === "SNG") {
+        element.bookAbbreviation = "SONG";
+        continue;
+      } else if (ParatextBookAbbr === "EZK") {
+        element.bookAbbreviation = "EZEK";
+        continue;
+      } else if (ParatextBookAbbr === "PHP") {
+        element.bookAbbreviation = "PHIL";
+        continue;
+      } else if (ParatextBookAbbr === "PHM") {
+        element.bookAbbreviation = "PHILEM";
+        continue;
+      } else if (ParatextBookAbbr === "JAS") {
+        element.bookAbbreviation = "JAMES";
+        continue;
+      } else if (ParatextBookAbbr === "JUD") {
+        element.bookAbbreviation = "JUDE";
+      }
+    }
+  }
+  changeBookNames(accArray);
+  changeBookNames(notesArray);
 
   //now the conversion is done, let's do some error checking.
   function errorchecking(array, searchforwhat) {

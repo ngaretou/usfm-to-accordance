@@ -1,0 +1,3 @@
+Manually adjusted to split verses (not easy to do programatically)
+Acts 19
+2Cor 13
