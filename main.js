@@ -780,6 +780,7 @@ function conversion(files) {
       ) {
         verseTextToMove = accArray[i].lineText;
         verseTextToMove = verseTextToMove.replace(/¶/g, "");
+        verseTextToMove = verseTextToMove.replace(/<br>/g, "");
         //Now delete that element
         accArray.splice(i, 1);
         break;
@@ -954,7 +955,7 @@ function conversion(files) {
   changeVerseRange("PSA", "58", "0", "11", "58", "1", "12");
   changeVerseRange("PSA", "59", "0", "17", "59", "1", "18");
   //Ps60
-  change1Verse("PSA", "60", "0", "60", "2");
+  change1Verse("PSA", "60", "0", "60", "1");
   moveVerseContentIntoPrevious("PSA", "60", "0", "60", "2");
   changeVerseRange("PSA", "60", "1", "12", "60", "3", "14");
 
@@ -1167,6 +1168,12 @@ function conversion(files) {
         continue;
       } else if (ParatextBookAbbr === "EZK") {
         element.bookAbbreviation = "EZEK";
+        continue;
+      } else if (ParatextBookAbbr === "JOL") {
+        element.bookAbbreviation = "JOEL";
+        continue;
+      } else if (ParatextBookAbbr === "NAM") {
+        element.bookAbbreviation = "NAH";
         continue;
       } else if (ParatextBookAbbr === "PHP") {
         element.bookAbbreviation = "PHIL";
