@@ -1,3 +1,12 @@
 Manually adjusted to split verses (not easy to do programatically)
 Acts 19
 2Cor 13
+
+
+Non-consecutive dashed verses
+Exo 26.15-17
+Exo 36.20-22
+Lev 11.13-18
+Deut 14:15-18
+
+Neh 7.67-73

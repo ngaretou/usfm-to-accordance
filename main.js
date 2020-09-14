@@ -501,11 +501,14 @@ function conversion(files) {
 
           var verseContents = verseContents.replace(/\\s.*?\s.*\n/g, "");
 
+          //Sometimes you can get <br>\n at the end of a verse, which makes for some unexpected behavior
+          var verseContents = verseContents.replace(/\<br\>\r\n/g, "\r\n");
+
           cutoutatstart(verseContents, `\\d+-*\\d*\\s`);
           verseContents = trimmedstring;
 
-          //For first entry in verses you have usually just the chapter number alone, so throw it away and move on
-          if (verseContents.length > 8) {
+          //For first entry in 'verses' you have usually just the chapter number alone, so throw it away and move on
+          if (verseContents.length > 6) {
             //Check for footnotes
             hasFootnotes = verseContents.includes(`\\f \+`);
             if (hasFootnotes === true) {
@@ -838,8 +841,88 @@ function conversion(files) {
       }
     }
   }
+  //This is where you have the right number of verses, but need just a verse 0
+  function insertVerse0beforePsalm(chapNum) {
+    for (var i = 0; i < accArray.length; i++) {
+      if (
+        accArray[i].bookAbbreviation === "PSA" &&
+        accArray[i].chapNum === chapNum &&
+        accArray[i].verseNum === "1"
+      ) {
+        //insert v 0 before v 1 of that Psalm
+        var element = {
+          bookAbbreviation: "PSA",
+          chapNum: chapNum,
+          verseNum: "0",
+          lineText: "[Versification correction]\r\n",
+        };
+        accArray.splice(i, 0, element);
+        break;
+      }
+    }
+  }
 
+  var verse0Psalms = [
+    "11",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "23",
+    "24",
+    "25",
+    "26",
+    "27",
+    "28",
+    "29",
+    "32",
+    "35",
+    "37",
+    "50",
+    "66",
+    "72",
+    "73",
+    "74",
+    "78",
+    "79",
+    "82",
+    "86",
+    "87",
+    "90",
+    "98",
+    "100",
+    "101",
+    "103",
+    "109",
+    "110",
+    "120",
+    "121",
+    "122",
+    "123",
+    "124",
+    "125",
+    "126",
+    "127",
+    "128",
+    "129",
+    "130",
+    "131",
+    "132",
+    "133",
+    "134",
+    "138",
+    "139",
+    "141",
+    "143",
+    "144",
+    "145",
+  ];
   //Normalize versification
+  for (let ps of verse0Psalms) {
+    insertVerse0beforePsalm(ps);
+  }
+
   // KJV << Orig
   // "GEN 31:55": "GEN 32:1",
   change1Verse("GEN", "31", "55", "32", "1");
@@ -896,7 +979,9 @@ function conversion(files) {
   changeVerseRange("2CH", "14", "2", "15", "14", "1", "14");
   changeVerseRange("NEH", "4", "1", "6", "3", "33", "38");
   changeVerseRange("NEH", "4", "7", "23", "4", "1", "17");
-  changeVerseRange("NEH", "7", "69", "73", "7", "68", "72");
+
+  // changeVerseRange("NEH", "7", "70", "73", "7", "69", "72");
+
   change1Verse("NEH", "9", "38", "10", "1");
   changeVerseRange("NEH", "10", "1", "39", "10", "2", "40");
   changeVerseRange("JOB", "41", "1", "8", "40", "25", "32");
@@ -908,6 +993,7 @@ function conversion(files) {
   changeVerseRange("PSA", "7", "0", "17", "7", "1", "18");
   changeVerseRange("PSA", "8", "0", "9", "8", "1", "10");
   changeVerseRange("PSA", "9", "0", "20", "9", "1", "21");
+
   changeVerseRange("PSA", "12", "0", "8", "12", "1", "9");
   // changeVerseRange("PSA", "13", "0", "5", "13", "1", "6"); // This one called for in Paratext mapping but not in Wolof actual text.
   changeVerseRange("PSA", "18", "0", "50", "18", "1", "51");
@@ -1017,6 +1103,8 @@ function conversion(files) {
   changeVerseRange("ZEC", "1", "18", "21", "2", "1", "4");
   changeVerseRange("ZEC", "2", "1", "13", "2", "5", "17");
   changeVerseRange("MAL", "4", "1", "6", "3", "19", "24");
+
+  moveVerseContentIntoPrevious("REV", "12", "17", "12", "18");
   // "LEV 6:1-7": "LEV 5:20-26",
   // "LEV 6:8-30": "LEV 6:1-23",
   // "NUM 16:36-50": "NUM 17:1-15",
