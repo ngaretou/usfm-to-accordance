@@ -1274,6 +1274,22 @@ function conversion(files) {
         continue;
       } else if (ParatextBookAbbr === "JUD") {
         element.bookAbbreviation = "JUDE";
+        continue;
+      } else if (ParatextBookAbbr === "MRK") {
+        element.bookAbbreviation = "MARK";
+        continue;
+      } else if (ParatextBookAbbr === "JHN") {
+        element.bookAbbreviation = "JOHN";
+        continue;
+      } else if (ParatextBookAbbr === "1JN") {
+        element.bookAbbreviation = "1JOHN";
+        continue;
+      }else if (ParatextBookAbbr === "2JN") {
+        element.bookAbbreviation = "2JOHN";
+        continue;
+      } else if (ParatextBookAbbr === "3JN") {
+        element.bookAbbreviation = "3JOHN";
+        continue;
       }
     }
   }
