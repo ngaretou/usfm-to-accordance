@@ -1,2 +1,2 @@
 # usfm-to-accordance
-Convert USFM Bible format to Accordance User Bible format
+Electron project to convert USFM Bible format to Accordance User Bible format
