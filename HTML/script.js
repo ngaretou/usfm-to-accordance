@@ -465,6 +465,10 @@ function convertToRtf(plain) {
   plain = plain.replace(/ŋ/g, `\\uc0\\u331 `); //
   plain = plain.replace(/Ŋ/g, `\\uc0\\u330 `); //
 
+  // Punctuation
+  plain = plain.replace(/—/g, `\\'97`); // Em dash
+  plain = plain.replace(/–/g, `\\'96`); // En dash
+
   return (
     //original version
     //"{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang2057{\\fonttbl{\\f0\\fnil\\fcharset0 HelveticaNeue;}}\n\\viewkind4\\uc1\\pard\\f0\\fs28 " +
@@ -598,7 +602,6 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
                       }
 
                       if (
-                        notesArray[i + 1].chapNum &&
                         notesArray[i].chapNum === notesArray[i + 1].chapNum &&
                         notesArray[i].verseNum === notesArray[i + 1].verseNum
                       ) {
@@ -606,7 +609,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
                           tempTextToSave +
                           formattingMark +
                           notesArray[i].lineText +
-                          "↵";
+                          "↵↵";
                       } else {
                         tempTextToSave =
                           tempTextToSave +

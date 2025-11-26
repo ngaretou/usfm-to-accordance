@@ -289,10 +289,13 @@ function conversion(files) {
     listofBooksinCurrentBible.push(bookNameAbbreviationString);
 
     //Now do general changes.
+    // change the ~ character to 1,000s separator - for Wolof, that is period.
+    var fileContents = fileContents.replace(/~/g, ".");
     //Accordance says it doesn't care about missing verses in the help file but that's not correct -
     //missing verses don't throw an error on import but they mess up synchronized scrolling.
     //They also care about extra verses, and there can be none.
     //So here we grab dashed verses and expand them with placeholder text. *shakes fist in direction of Accordance HQ*
+
     var fileContents = fileContents.replace(
       /(\\v )(\d+)-(\d+)(.*?\r\n)/g,
       "$1$2$4\\v $3 [Verse $3 is combined with verse $2 /Le verset $3 est combiné avec le verset $2]\r\n"
@@ -328,19 +331,34 @@ function conversion(files) {
     //at this point any remaining \p markers are mid-verse so get <br>
     var fileContents = fileContents.replace(/\r\n\\p\w*\s/g, "<br>");
 
+    // 2025 putting this here b/c the following q1, q2 line eats up an unusual case of qs on its own line
+    // Wolof Ps 4.4
+    var fileContents = fileContents.replace(
+      /(\r\n\\qs\s)(.*?)(\\qs\*)/g,
+      `<br><i>$2</i>`
+    );
+
     //q1, q2 when next to a \v get para mark; otherwise get <br>
     var fileContents = fileContents.replace(
       /(\\q\d*\r\n)(\\v\s)(\d*\s)/g,
       `$2$3¶ `
     );
-    var fileContents = fileContents.replace(/\r\n\\q.*?\s/g, "<br>");
+
+    // having trouble 2025 with a \qs at beginning of line - keeping this for troubleshooting
+    var fileContents = fileContents.replace(/\r\n\\q.*?\s/g, "<br>"); // original 2020 version -
 
     // But /ip intro paragraph gets the para mark
     var fileContents = fileContents.replace(/\\ip.*?\s/g, "¶");
+    // as well as intro
+    var fileContents = fileContents.replace(/\\im.*?\s/g, "↵↵");
 
     //Remove °
     var fileContents = fileContents.replace(/\°/g, "");
-    var fileContents = fileContents.replace(/---/g, "-");
+    // the paratext convention --- to em dash - RTF doesn't like this
+    var fileContents = fileContents.replace(/---/g, "–");
+    // these are to my knowledge only in intros - and RTF doesn't deal well with them for some reason
+    // var fileContents = fileContents.replace(/—/g, "-");
+    // \u002a
 
     //Replace \\p & \q1,\q2 etc with ¶
 
@@ -387,6 +405,7 @@ function conversion(files) {
       /(\\fqa*\s)(.*?)(\\f\*)/g,
       `<i>$2</i> $3`
     );
+
     var fileContents = fileContents.replace(
       /(\\qs\s)(.*?)(\\qs\*)/g,
       `<i>$2</i>`
@@ -419,6 +438,9 @@ function conversion(files) {
 
     //Take out glossary terms (for now)
     var fileContents = fileContents.replace(/\|.*?:\\\+*w\*/g, ""); // |glossaryterm\w
+    // 2025 : below another case, only difference is without the colon to match this kind of gloss term from several Psalms:
+    // PSA 120:1 Di woy yu ñuy yéege|woy yi ñuy yéege\w* ca tund ya...
+    var fileContents = fileContents.replace(/\|.*?\\\+*w\*/g, ""); // |glossaryterm\w
     var fileContents = fileContents.replace(/\\\+*w\s/g, ""); //\w, \+w
 
     //Take out \\b and replace with inline <br> line breaks
@@ -432,31 +454,40 @@ function conversion(files) {
 
     //split chapter into verses
     for (let chapter of chapters) {
-      chapNum = chapter.match(/\d+/);
+      let chapNum = "0";
+      let match = chapter.match(/\d+/);
+      if (match !== null) {
+        chapNum = match[0];
+      }
 
       var verses = chapter.split(/\\v\s/);
       if (verses.length < 2) {
         //special case for intros; any section that does not have verses
-        chapterWithNoVerses = verses.toString();
+        let chapterWithNoVerses = verses.toString();
 
         //Peel off the \id, \h, and TOCs to get to \mt1
-        var startAt = `\\mt1`;
-        var startingChar = chapterWithNoVerses.indexOf(startAt);
-        chapterWithNoVersesFromMT1 = chapterWithNoVerses.substring(
-          startingChar
-        );
+        let startAt = `\\mt1`;
+        let startingChar = chapterWithNoVerses.indexOf(startAt);
+        chapterWithNoVersesFromMT1 =
+          chapterWithNoVerses.substring(startingChar);
 
+        // 2025 version:
+        // this gets you mt1, mt2, mt3 only
+        let titles = chapterWithNoVersesFromMT1.match(/(?<=mt.?\d?\s).+/g);
+        // 2020 version:
         //This gets your main titles mt mt1 mt2, also imt is intro section headings
-        var titles = chapterWithNoVersesFromMT1.match(
-          /(?<=\\\w?[sm].?\d?\s).+.+/g
-        );
+        // let titles = chapterWithNoVersesFromMT1.match(
+        //   /(?<=\\\w?[sm].?\d?\s).+.+/g
+        // );
 
         //Now for each of our title lines, mt1, mt2, imt etc
         for (let title of titles) {
           var entry = {
             bookAbbreviation: bookNameAbbreviationString,
             chapNum: chapNum,
-            verseNum: 0,
+            // was doing this in 2020 but there's no verse 0 - it just gets amalgamated into verse 1 anyway
+            // verseNum: 0,
+            verseNum: "1",
             type: "title",
             lineText: `<b>${title}</b>`,
           };
@@ -465,25 +496,33 @@ function conversion(files) {
           notesArray.push(entry);
         }
         //If there's only one title, we've entered the rest of what we need already above; move on.
-        if (titles.length > 1) {
-          //But if there is something more than one title, we should enter it.
-          lastTitle = titles[titles.length - 1];
 
-          whatsLeftAfterTitles = chapterWithNoVersesFromMT1.substring(
-            chapterWithNoVersesFromMT1.indexOf(lastTitle) + lastTitle.length
-          );
+        //If there is something more than one title, we should enter it.
+        lastTitle = titles[titles.length - 1];
 
-          //At this point, the only thing left are intros and other front matter, so put a verse 0 on it and it will go to the beginning of the notes book when it is formed.
+        whatsLeftAfterTitles = chapterWithNoVersesFromMT1.substring(
+          chapterWithNoVersesFromMT1.indexOf(lastTitle) + lastTitle.length
+        );
 
+        //At this point, the only thing left are intros and other front matter, so put a verse 0 on it and it will go to the beginning of the notes book when it is formed.
+
+        // if (whatsLeftAfterTitles.includes('<br>')){
+        //   console.log(`br in intro in ${bookNameAbbreviationString}`);
+
+        // }
+        var whatsLeftAfterTitles = whatsLeftAfterTitles.replace("<br>", "");
+
+        // at least five characters a bit arbitrary but should catch most of the cases
+        if (whatsLeftAfterTitles.length > 5) {
           var entry = {
             bookAbbreviation: bookNameAbbreviationString,
             chapNum: chapNum,
-            verseNum: 0,
+            verseNum: "1",
             type: "intro",
             lineText: whatsLeftAfterTitles,
           };
 
-          //Store those titles in the notes array
+          //Store that intro in the notes array
           notesArray.push(entry);
         }
       } else {
@@ -494,8 +533,11 @@ function conversion(files) {
           var verseContents = verse.toString();
 
           // var verseNum = verseContents.match(/\d+-*\d*/); //This would get dashed verses
-          var verseNum = verseContents.match(/\d+/); //This strips off dashes and only gets that first number.
-
+          let verseNum = "0";
+          let match = verseContents.match(/\d+/); //This strips off dashes and only gets that first number.
+          if (match !== null) {
+            verseNum = match[0];
+          }
           //Accordance does not take section headings, just verse text, so blow away \s \s1 \sp etc
           var verseContents = verseContents.replace(/\\m.*?\s.*\n/g, "");
 
@@ -972,7 +1014,7 @@ function conversion(files) {
   changeVerseRange("2KI", "12", "1", "21", "12", "2", "22");
   changeVerseRange("1CH", "6", "1", "15", "5", "27", "41");
   changeVerseRange("1CH", "6", "16", "81", "6", "1", "66");
-  changeVerseRange("1CH", "12", "4", "40", "12", "5", "41");
+  changeVerseRange("1CH", "12", "5", "40", "12", "6", "41");
   change1Verse("2CH", "2", "1", "1", "18");
   changeVerseRange("2CH", "2", "2", "18", "2", "1", "17");
   change1Verse("2CH", "14", "1", "13", "23");
@@ -1251,7 +1293,10 @@ function conversion(files) {
   function changeBookNames(array) {
     for (let element of array) {
       var ParatextBookAbbr = element.bookAbbreviation;
-      if (ParatextBookAbbr === "SNG") {
+      if (ParatextBookAbbr === "JDG") {
+        element.bookAbbreviation = "JUDG";
+        continue;
+      } else if (ParatextBookAbbr === "SNG") {
         element.bookAbbreviation = "SONG";
         continue;
       } else if (ParatextBookAbbr === "EZK") {
@@ -1284,7 +1329,7 @@ function conversion(files) {
       } else if (ParatextBookAbbr === "1JN") {
         element.bookAbbreviation = "1JOHN";
         continue;
-      }else if (ParatextBookAbbr === "2JN") {
+      } else if (ParatextBookAbbr === "2JN") {
         element.bookAbbreviation = "2JOHN";
         continue;
       } else if (ParatextBookAbbr === "3JN") {

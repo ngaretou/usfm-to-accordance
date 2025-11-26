@@ -1,10 +1,16 @@
-KYG 2020
-Manually adjusted to split verses (not easy to do programatically)
+### KYG 2020 - done in KYG2025 input files as well
+## Manually adjusted to split verses (not easy to do programatically)
 Acts 19
 2Cor 13
+Rev 12
+Neh 7 - needs a 73
 
+1CH 12.4-5 need to be joined together for KJV numbering - leaving 6-41. Pull those back in the code to 5-41. 
 
-Non-consecutive dashed verses
+## Formatting 
+put a 
+
+## Non-consecutive dashed verses
 Exo 26.15-17
 Exo 36.20-22
 Lev 11.13-18
@@ -12,5 +18,5 @@ Deut 14:15-18
 Neh 7.67-73
 
 
-NT2010
+### NT2010
 Get John 7:53 into 7 instead of in 8
