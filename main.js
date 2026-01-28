@@ -81,7 +81,7 @@ app.on("ready", () => {
   if (testing === true) {
     let rawdata = fs.readFileSync(
       "/Users/corey/Desktop/testingfile.u2ac",
-      "utf-8"
+      "utf-8",
     );
     currentFileList = JSON.parse(rawdata);
     conversion(currentFileList);
@@ -298,34 +298,34 @@ function conversion(files) {
 
     var fileContents = fileContents.replace(
       /(\\v )(\d+)-(\d+)(.*?\r\n)/g,
-      "$1$2$4\\v $3 [Verse $3 is combined with verse $2 /Le verset $3 est combiné avec le verset $2]\r\n"
+      "$1$2$4\\v $3 [Verse $3 is combined with verse $2 /Le verset $3 est combiné avec le verset $2]\r\n",
     );
     //\p \pmo \pm marks have to be inside, not outside, their associated verses
     var fileContents = fileContents.replace(
       /(\\p\w*\r\n)(\\v\s)(\d*\s)/g,
-      "$2$3¶ "
+      "$2$3¶ ",
     );
 
     //Cleanup of an unusual case where there was \c 5 \b \q1 \v 1: that extra marker in between \c  and \v threw an error when parsed to an array of verses later on
     var fileContents = fileContents.replace(
       /(\\c\s\d+\r\n)(\\\w+\r\n)(\\\w+\r\n)/g,
-      `$1$3`
+      `$1$3`,
     );
 
     //Above changing para marks to be inside their verse numbers - this time for dash-separated verse marks
     var fileContents = fileContents.replace(
       /(\\p\r\n)(\\v\s)(\d*-\d*\s)/g,
-      "$2$3¶ "
+      "$2$3¶ ",
     );
     //Also get \li* marks inside their verse numbers - this continues to get verse numbers inline
     var fileContents = fileContents.replace(
       /(\\li\d*\r\n)(\\v\s)(\d*\s)/g,
-      "$2$3¶ "
+      "$2$3¶ ",
     );
     //Also get \li* marks inside their verse numbers - this time for dash-separated verse marks
     var fileContents = fileContents.replace(
       /(\\li\d*\s)(\\v\s)(\d*-\d*\s)/g,
-      "$2$3¶ "
+      "$2$3¶ ",
     );
 
     //at this point any remaining \p markers are mid-verse so get <br>
@@ -335,13 +335,13 @@ function conversion(files) {
     // Wolof Ps 4.4
     var fileContents = fileContents.replace(
       /(\r\n\\qs\s)(.*?)(\\qs\*)/g,
-      `<br><i>$2</i>`
+      `<br><i>$2</i>`,
     );
 
     //q1, q2 when next to a \v get para mark; otherwise get <br>
     var fileContents = fileContents.replace(
       /(\\q\d*\r\n)(\\v\s)(\d*\s)/g,
-      `$2$3¶ `
+      `$2$3¶ `,
     );
 
     // having trouble 2025 with a \qs at beginning of line - keeping this for troubleshooting
@@ -379,7 +379,7 @@ function conversion(files) {
     //fq...fk italics
     var fileContents = fileContents.replace(
       /(\\fq\s)(.*?)(\\ft)/g,
-      `<i>$2</i>`
+      `<i>$2</i>`,
     );
     //Footnote ref callers
     // var fileContents = fileContents.replace(/(\\fr\s)/g, `<b>`);
@@ -395,24 +395,24 @@ function conversion(files) {
     var fileContents = fileContents.replace(/(\\fk\*\s)/g, "</b>");
     var fileContents = fileContents.replace(
       /(\\fq\s)(.*?)(\\ft\s)/g,
-      `<i>$2</i>`
+      `<i>$2</i>`,
     );
     var fileContents = fileContents.replace(
       /(\\fq\s)(.*?)(\\fq\*)/g,
-      `<i>$2</i>`
+      `<i>$2</i>`,
     );
     var fileContents = fileContents.replace(
       /(\\fqa*\s)(.*?)(\\f\*)/g,
-      `<i>$2</i> $3`
+      `<i>$2</i> $3`,
     );
 
     var fileContents = fileContents.replace(
       /(\\qs\s)(.*?)(\\qs\*)/g,
-      `<i>$2</i>`
+      `<i>$2</i>`,
     );
     var fileContents = fileContents.replace(
       /(\\qt\s)(.*?)(\\qt\*)/g,
-      `<i>$2</i>`
+      `<i>$2</i>`,
     );
 
     // var fileContents = fileContents.replace(
@@ -455,7 +455,10 @@ function conversion(files) {
     //split chapter into verses
     for (let chapter of chapters) {
       let chapNum = "0";
-      let match = chapter.match(/\d+/);
+      // the ^ means start at the beginning of the string
+      let match = chapter.match(/^\d+/);
+      // TODO here
+
       if (match !== null) {
         chapNum = match[0];
       }
@@ -484,7 +487,7 @@ function conversion(files) {
         for (let title of titles) {
           var entry = {
             bookAbbreviation: bookNameAbbreviationString,
-            chapNum: chapNum,
+            chapNum: chapNum === "0" ? "1" : chapNum,
             // was doing this in 2020 but there's no verse 0 - it just gets amalgamated into verse 1 anyway
             // verseNum: 0,
             verseNum: "1",
@@ -501,7 +504,7 @@ function conversion(files) {
         lastTitle = titles[titles.length - 1];
 
         whatsLeftAfterTitles = chapterWithNoVersesFromMT1.substring(
-          chapterWithNoVersesFromMT1.indexOf(lastTitle) + lastTitle.length
+          chapterWithNoVersesFromMT1.indexOf(lastTitle) + lastTitle.length,
         );
 
         //At this point, the only thing left are intros and other front matter, so put a verse 0 on it and it will go to the beginning of the notes book when it is formed.
@@ -516,7 +519,7 @@ function conversion(files) {
         if (whatsLeftAfterTitles.length > 5) {
           var entry = {
             bookAbbreviation: bookNameAbbreviationString,
-            chapNum: chapNum,
+            chapNum: chapNum === "0" ? "1" : chapNum,
             verseNum: "1",
             type: "intro",
             lineText: whatsLeftAfterTitles,
@@ -659,7 +662,7 @@ function conversion(files) {
         return obj.bookAbbreviation === bookName;
       });
       const currentBookLastVersesArray = currentBookObject.map(
-        (el) => el.lastverse
+        (el) => el.lastverse,
       );
       //Compare to original versification
       if (
@@ -674,7 +677,7 @@ function conversion(files) {
             bookName +
             ", " +
             origversification.maxVerses[bookName].length +
-            " in Original."
+            " in Original.",
         );
       }
       //Compare to KJV versification
@@ -690,7 +693,7 @@ function conversion(files) {
             bookName +
             ", " +
             KJVversification.maxVerses[bookName].length +
-            " in KJV schema."
+            " in KJV schema.",
         );
       } //Now for each verse in this bookName book, check lastverse
 
@@ -701,7 +704,7 @@ function conversion(files) {
         ) {
           longer++;
           console.log(
-            bookName + " ch " + (i + 1) + " is longer than KJV versification."
+            bookName + " ch " + (i + 1) + " is longer than KJV versification.",
           );
         } else if (
           currentBookLastVersesArray[i] <
@@ -709,7 +712,7 @@ function conversion(files) {
         ) {
           shorter++;
           console.log(
-            bookName + " ch " + (i + 1) + " is shorter than KJV versification."
+            bookName + " ch " + (i + 1) + " is shorter than KJV versification.",
           );
         }
       }
@@ -729,7 +732,7 @@ function conversion(files) {
     destinationChapter,
     destinationVerse,
     origChapter,
-    origVerse
+    origVerse,
   ) {
     //Normalize the verses
     for (var i = farthestAccArrayIndexReached; i < accArray.length; i++) {
@@ -766,7 +769,7 @@ function conversion(files) {
     destinationVerseRangeEnd,
     origChapter,
     origVerseRangeStart,
-    origVerseRangeEnd
+    origVerseRangeEnd,
   ) {
     //First make sure that the verse ranges are equal
     var destRangeLength =
@@ -783,7 +786,7 @@ function conversion(files) {
           " " +
           origVerseRangeStart +
           "-" +
-          origVerseRangeEnd
+          origVerseRangeEnd,
       );
       return;
     }
@@ -800,7 +803,7 @@ function conversion(files) {
         destinationChapter,
         destinationVerseHolder.toString(),
         origChapter,
-        origVerseHolder.toString()
+        origVerseHolder.toString(),
       );
       destinationVerseHolder++;
       origVerseHolder++;
@@ -812,7 +815,7 @@ function conversion(files) {
     chapterToAddTo,
     verseToAddTo,
     chapter,
-    verse
+    verse,
   ) {
     //First get the content of the verse to grab
     var verseTextToMove;
@@ -851,7 +854,7 @@ function conversion(files) {
     chapterToAddTo,
     verseToAddTo,
     chapter,
-    verse
+    verse,
   ) {
     //First get the content of the verse to grab
     var verseTextToMove;
