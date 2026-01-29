@@ -582,8 +582,8 @@ function conversion(files) {
             var entry = {
               bookAbbreviation: bookNameAbbreviationString,
               type: "verse",
-              chapNum: chapNum[0],
-              verseNum: verseNum[0],
+              chapNum: chapNum,
+              verseNum: verseNum,
               lineText: verseContents,
             };
 

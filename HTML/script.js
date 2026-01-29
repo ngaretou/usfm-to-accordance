@@ -68,7 +68,7 @@ const appMenuWebsite = myData.myTranslations.menuWebsite[displayLang];
 //Give app builder a msg if they have a 'visit our website' message but not website set
 if (!(appMenuWebsite === "") && appMenuWebURL === "") {
   alert(
-    `Menu item for "visit our website" is enabled but no site address is entered. Check out otherText section of mydata.js.`
+    `Menu item for "visit our website" is enabled but no site address is entered. Check out otherText section of mydata.js.`,
   );
 }
 
@@ -496,7 +496,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
     var notify = confirm(
       "Conversion complete; " +
         errorArray.length +
-        " errors detected.\nChoose where you would like to save the results."
+        " errors detected.\nChoose where you would like to save the results.",
     );
     if (notify == true) {
       let filePathToSaveIn;
@@ -555,7 +555,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
 
           var filePathToCreate = path.join(
             filePathToSaveIn,
-            "U2AC " + currentDateTime
+            "U2AC " + currentDateTime,
           );
           //Make the directory
           fs.mkdir(filePathToCreate, function (err) {
@@ -569,7 +569,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
                 (err) => {
                   // In case of a error throw err.
                   if (err) throw err;
-                }
+                },
               );
               //Now write the errors file.
               if (errorArray.length !== 0) {
@@ -579,7 +579,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
                   (err) => {
                     // In case of a error throw err.
                     if (err) throw err;
-                  }
+                  },
                 );
               }
               if (notesArray.length !== 0) {
@@ -601,16 +601,29 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
                         formattingMark = "←";
                       }
 
-                      if (
-                        notesArray[i].chapNum === notesArray[i + 1].chapNum &&
-                        notesArray[i].verseNum === notesArray[i + 1].verseNum
-                      ) {
+                      // check if the next note is in the same verse:
+                      let noteHasSameVerseNoteFollowing = false;
+
+                      // if it is not the last note in the array, check if the next note is in the same verse:
+                      // get that last one in - it will not have a following note
+                      // and needs this to trigger that last note getting written
+                      if (i !== len - 1) {
+                        noteHasSameVerseNoteFollowing =
+                          notesArray[i].bookAbbreviation ===
+                            notesArray[i + 1].bookAbbreviation &&
+                          notesArray[i].chapNum === notesArray[i + 1].chapNum &&
+                          notesArray[i].verseNum === notesArray[i + 1].verseNum;
+                      }
+                      // if the next note is in the same verse, add the contents,
+                      // add a double newline, and go back to the loop
+                      if (noteHasSameVerseNoteFollowing) {
                         tempTextToSave =
                           tempTextToSave +
                           formattingMark +
                           notesArray[i].lineText +
                           "↵↵";
                       } else {
+                        // we're ready to write the note to the file
                         tempTextToSave =
                           tempTextToSave +
                           formattingMark +
@@ -626,7 +639,7 @@ ipcRenderer.on("indexing-done", (e, accArray, notesArray, errorArray) => {
                           (err) => {
                             // In case of a error throw err.
                             if (err) throw err;
-                          }
+                          },
                         );
                       }
                     }
