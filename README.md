@@ -9,8 +9,4 @@ current source is wolKYG2025
 Current problems: 
 Text seems to be good
 Notes: 
-    Jude intro not coming through
-    Rev last note not coming through
-
-
-
+    

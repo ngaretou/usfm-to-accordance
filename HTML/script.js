@@ -471,8 +471,10 @@ function convertToRtf(plain) {
 
   return (
     //original version
-    //"{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang2057{\\fonttbl{\\f0\\fnil\\fcharset0 HelveticaNeue;}}\n\\viewkind4\\uc1\\pard\\f0\\fs28 " +
-    "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2513\\cocoatextscaling0\\cocoaplatform0{\\fonttbl\\f0\\fnil\\fcharset0 HelveticaNeue-Light;\\f1\\fnil\\fcharset0 HelveticaNeue-Bold;\\f2\\fnil\\fcharset0 HelveticaNeue-LightItalic;}\n\\viewkind4\\deftab720\\f0\\fs28\n" +
+    // "{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang2057{\\fonttbl{\\f0\\fnil\\fcharset0 HelveticaNeue;}}\n\\viewkind4\\uc1\\pard\\f0\\fs28 " +
+    // before 2026 change:
+    // "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2513\\cocoatextscaling0\\cocoaplatform0{\\fonttbl\\f0\\fnil\\fcharset0 HelveticaNeue-Light;\\f1\\fnil\\fcharset0 HelveticaNeue-Bold;\\f2\\fnil\\fcharset0 HelveticaNeue-LightItalic;}           \n\\viewkind4\\deftab720\\f0\\fs28\n" +
+    "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2513\\cocoatextscaling0\\cocoaplatform0{\\fonttbl\\f0\\fnil\\fcharset0 HelveticaNeue-Light;\\f1\\fnil\\fcharset0 HelveticaNeue-Bold;\\f2\\fnil\\fcharset0 HelveticaNeue-LightItalic;}{\\colortbl;}\\viewkind4\\deftab720\\f0\\fs28\\cf0\n" +
     plain +
     " \\\n}"
   );

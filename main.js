@@ -300,9 +300,15 @@ function conversion(files) {
       /(\\v )(\d+)-(\d+)(.*?\r\n)/g,
       "$1$2$4\\v $3 [Verse $3 is combined with verse $2 /Le verset $3 est combiné avec le verset $2]\r\n",
     );
-    //\p \pmo \pm marks have to be inside, not outside, their associated verses
+    // \p \pmo \pm marks have to be inside, not outside, their associated verses
     var fileContents = fileContents.replace(
       /(\\p\w*\r\n)(\\v\s)(\d*\s)/g,
+      "$2$3¶ ",
+    );
+
+    // \m marks have to be inside, not outside, their associated verses
+    var fileContents = fileContents.replace(
+      /(\\m\r\n)(\\v\s)(\d*\s)/g,
       "$2$3¶ ",
     );
 
@@ -328,27 +334,29 @@ function conversion(files) {
       "$2$3¶ ",
     );
 
-    //at this point any remaining \p markers are mid-verse so get <br>
-    var fileContents = fileContents.replace(/\r\n\\p\w*\s/g, "<br>");
+    //at this point any remaining \p markers are mid-verse so get <br> - note must be space before (not after)
+    var fileContents = fileContents.replace(/\r\n\\p\w*\s/g, " <br>");
 
     // 2025 putting this here b/c the following q1, q2 line eats up an unusual case of qs on its own line
     // Wolof Ps 4.4
     var fileContents = fileContents.replace(
       /(\r\n\\qs\s)(.*?)(\\qs\*)/g,
-      `<br><i>$2</i>`,
+      ` <br><i>$2</i>`,
     );
 
     //q1, q2 when next to a \v get para mark; otherwise get <br>
+    // e.g. Ps 4.1-2
     var fileContents = fileContents.replace(
       /(\\q\d*\r\n)(\\v\s)(\d*\s)/g,
       `$2$3¶ `,
     );
 
     // having trouble 2025 with a \qs at beginning of line - keeping this for troubleshooting
-    var fileContents = fileContents.replace(/\r\n\\q.*?\s/g, "<br>"); // original 2020 version -
+    var fileContents = fileContents.replace(/\r\n\\q.*?\s/g, " <br>\t\t"); // original 2020 version -
 
     // But /ip intro paragraph gets the para mark
     var fileContents = fileContents.replace(/\\ip.*?\s/g, "¶");
+
     // as well as intro
     var fileContents = fileContents.replace(/\\im.*?\s/g, "↵↵");
 
@@ -363,11 +371,11 @@ function conversion(files) {
     //Replace \\p & \q1,\q2 etc with ¶
 
     //Some li* markers have carriage returns that we need to eliminate when li >> br
-    var fileContents = fileContents.replace(/\r\n\\li\d*/g, "<br>");
-    var fileContents = fileContents.replace(/\r\n\\ie/g, "<br>");
+    var fileContents = fileContents.replace(/\r\n\\li\d*/g, " <br>");
+    var fileContents = fileContents.replace(/\r\n\\ie/g, " <br>");
     //others do not, we just replace them with br
-    var fileContents = fileContents.replace(/\\li\d*/g, "<br>");
-    var fileContents = fileContents.replace(/\\ie/g, "<br>");
+    var fileContents = fileContents.replace(/\\li\d*/g, " <br>");
+    var fileContents = fileContents.replace(/\\ie/g, " <br>");
 
     //Replace \fk, fq, fr...\ft with <b>...</b>
     // var fileContents = fileContents.replace(
@@ -447,7 +455,12 @@ function conversion(files) {
     //but first an unusual case - in case of \c X \b \xxx
     var fileContents = fileContents.replace(/(\\c\s\d*\r\n)(\\b\r\n)/g, "$1");
     //now that \b to <br>
-    var fileContents = fileContents.replace(/\r\n\\b/g, "<br>");
+    var fileContents = fileContents.replace(/\r\n\\b/g, " <br>");
+
+    // 2026: Accordance 14 changes:
+    // i.e. Selaw.</i> >> Selaw</i>.
+    var fileContents = fileContents.replace(/\.<\/i>/g, "</i>.");
+    var fileContents = fileContents.replace(/></g, "> <");
 
     //split the file contents into chapters
     var chapters = fileContents.split(/\\c\s/);
@@ -457,7 +470,6 @@ function conversion(files) {
       let chapNum = "0";
       // the ^ means start at the beginning of the string
       let match = chapter.match(/^\d+/);
-      // TODO here
 
       if (match !== null) {
         chapNum = match[0];
@@ -484,19 +496,22 @@ function conversion(files) {
         // );
 
         //Now for each of our title lines, mt1, mt2, imt etc
-        for (let title of titles) {
-          var entry = {
-            bookAbbreviation: bookNameAbbreviationString,
-            chapNum: chapNum === "0" ? "1" : chapNum,
-            // was doing this in 2020 but there's no verse 0 - it just gets amalgamated into verse 1 anyway
-            // verseNum: 0,
-            verseNum: "1",
-            type: "title",
-            lineText: `<b>${title}</b>`,
-          };
+        // if it's just one line, it's just the title, no need to add it to the notes array
+        if (titles.length > 1) {
+          for (let title of titles) {
+            var entry = {
+              bookAbbreviation: bookNameAbbreviationString,
+              chapNum: chapNum === "0" ? "1" : chapNum,
+              // was doing this in 2020 but there's no verse 0 - it just gets amalgamated into verse 1 anyway
+              // verseNum: 0,
+              verseNum: "1",
+              type: "title",
+              lineText: `<b>${title}</b>`,
+            };
 
-          //Store those titles in the notes array
-          notesArray.push(entry);
+            //Store those titles in the notes array
+            notesArray.push(entry);
+          }
         }
         //If there's only one title, we've entered the rest of what we need already above; move on.
 
@@ -513,7 +528,8 @@ function conversion(files) {
         //   console.log(`br in intro in ${bookNameAbbreviationString}`);
 
         // }
-        var whatsLeftAfterTitles = whatsLeftAfterTitles.replace("<br>", "");
+        // TODO check this out if it causes unexpected results
+        var whatsLeftAfterTitles = whatsLeftAfterTitles.replace(/<br>/g, "");
 
         // at least five characters a bit arbitrary but should catch most of the cases
         if (whatsLeftAfterTitles.length > 5) {
